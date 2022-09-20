@@ -1,6 +1,6 @@
 from typing import Tuple, Union, List
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup
 
 from src.keyboards import Keyboards
 from src.keyboards.order import OrderKeyboards
@@ -74,20 +74,45 @@ class OrderMessages(Messages):
         return msg, keyboard
 
     @classmethod
-    def order_payment_type(cls, payment_type: str, order: Order) -> Tuple[List[str], Union[ReplyKeyboardMarkup, ReplyKeyboardRemove]]:
+    def order_payment_type(cls, payment_type: str, order: Order) -> Tuple[
+        List[str], Union[ReplyKeyboardMarkup, ReplyKeyboardRemove]]:
         msgs = [cls._read_message_text(
             f'order/order_payment_type_{"card" if payment_type == PaymentType.CARD[0] else "cash"}')
         ]
         if payment_type == PaymentType.CARD[0]:
-            msgs.append(cls._read_message_text('order/order_confirm_info').replace('$order_confirm_info$', repr(order)))
-        keyboard = Keyboards.remove() if payment_type == PaymentType.CASH[1] else OrderKeyboards.Reply.create_order()
+            msgs.append(cls._read_message_text('order/order_confirm_info').replace('$order_confirm_info$',
+                                                                                   order.info_delivery()))
+        keyboard = Keyboards.remove() if payment_type == PaymentType.CASH[0] else OrderKeyboards.Reply.create_order()
         return msgs, keyboard
 
     @classmethod
     def order_payment_payback_from(cls, order: Order) -> Tuple[List[str], ReplyKeyboardMarkup]:
         msgs = [
             cls._read_message_text('order/order_payment_payback_from'),
-            cls._read_message_text('order/order_confirm_info').replace('$order_confirm_info$', repr(order))
-                ]
+            cls._read_message_text('order/order_confirm_info').replace('$order_confirm_info$', order.info_delivery())
+        ]
         keyboard = OrderKeyboards.Reply.create_order()
         return msgs, keyboard
+
+    @classmethod
+    def order_stub(cls, order: Order, short_info: bool, supplier_name: str = None, delivery_name: str = None):
+        msg = order.info() if short_info else order.full_info(supplier_name, delivery_name)
+        keyboard = OrderKeyboards.Inline.order_supplier_actions(order, short_info)
+        return msg, keyboard
+
+    @classmethod
+    def notify_order_created(cls, order: Order) -> Tuple[str, InlineKeyboardMarkup]:
+        msg = cls._read_message_text('order/notify_order_created')
+        keyboard = OrderKeyboards.Inline.order_supplier_open(order)
+        return msg, keyboard
+
+    @classmethod
+    def order_confirm(cls) -> str:
+        msg = cls._read_message_text('order/order_confirm')
+        return msg
+
+    @classmethod
+    def confirm_payment(cls, code: str) -> Tuple[str, ReplyKeyboardMarkup]:
+        msg = cls._read_message_text('order/confirm_payment').replace('$code$', code)
+        keyboard = OrderKeyboards.Reply.confirm_payment()
+        return msg, keyboard

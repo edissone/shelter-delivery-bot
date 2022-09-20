@@ -7,6 +7,7 @@ class Cache:
     __cache: Dict[int, Dict] = {}
     __users: Dict[str, User] = {}
     __positions: Dict[str, Dict[int, Position]] = {}
+    __suppliers: List[User] = []
 
     @classmethod
     def get(cls, tg_id: int) -> Dict:
@@ -53,3 +54,13 @@ class Cache:
             for position in positions:
                 if position.id == id:
                     return position
+
+    @classmethod
+    def get_suppliers(cls) -> Union[List[User], None]:
+        result = cls.__suppliers
+        return result if len(result) > 0 else None
+
+    @classmethod
+    def save_suppliers(cls, suppliers: List[User]) -> List[User]:
+        cls.__suppliers = suppliers
+        return cls.__suppliers

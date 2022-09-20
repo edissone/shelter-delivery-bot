@@ -7,7 +7,7 @@ from src.handlers.register import RegisterHandlers
 from src.handlers.states import REGISTER_NAME, REGISTER_PHONE, REGISTER_CONFIRM, REGISTER_START, MAIN_MENU_CUSTOMER, \
     MENU_CATEGORIES, ORDER_CONFIRM_POSITIONS, ORDER_DELIVERY_TYPE, ORDER_DELIVERY_NAME, ORDER_DELIVERY_PHONE, \
     ORDER_DELIVERY_ADDRESS, ORDER_DELIVERY_NOTES, ORDER_NOTES, ORDER_PAYMENT_TYPE, ORDER_PAYMENT_PAYBACK_FROM, \
-    ORDER_CONFIRM
+    ORDER_CONFIRM, MAIN_MENU_SUPPLIER
 from src.keyboards.callback_patterns import CallbackPatterns
 
 registration_start = MessageHandler(Filters.text, RegisterHandlers.register_start)
@@ -23,7 +23,7 @@ add_position = CallbackQueryHandler(callback=MenuHandlers.add_position,
 remove_position = CallbackQueryHandler(callback=MenuHandlers.remove_position,
                                        pattern=CallbackPatterns.position_remove_pattern[0])
 
-order_confirm = MessageHandler(Filters.text, OrderHandlers.order_confirm)
+order_confirm_create = MessageHandler(Filters.text, OrderHandlers.order_confirm_create)
 order_notes = MessageHandler(Filters.text, OrderHandlers.order_notes)
 
 order_delivery_type = MessageHandler(Filters.text, OrderHandlers.order_delivery_type)
@@ -34,6 +34,19 @@ order_delivery_notes = MessageHandler(Filters.text, OrderHandlers.order_delivery
 
 order_payment_type = MessageHandler(Filters.text, OrderHandlers.order_payment_type)
 order_payment_payback_from = MessageHandler(Filters.text, OrderHandlers.order_payment_payback_from)
+order_escalate_confirm = CallbackQueryHandler(callback=OrderHandlers.escalate_confirm,
+                                              pattern=CallbackPatterns.order_notify_confirm[0])
+
+order_confirm = MessageHandler(Filters.text, OrderHandlers.order_confirm)
+
+main_menu_supplier = MessageHandler(Filters.text, MenuHandlers.main_menu_supplier)
+
+supplier_move_to_state_callback = CallbackQueryHandler(callback=MenuHandlers.supplier_move_to_state_callback,
+                                                       pattern=CallbackPatterns.order_supplier_move_state_callback[0])
+supplier_fl_order_info_callback = CallbackQueryHandler(callback=MenuHandlers.supplier_fl_order_info,
+                                                       pattern=CallbackPatterns.order_supplier_fl_callback[0])
+supplier_cancel_callback = CallbackQueryHandler(callback=MenuHandlers.supplier_cancel_callback,
+                                                pattern=CallbackPatterns.order_supplier_cancel_callback[0])
 
 customer_states = {
     REGISTER_START: [registration_start],
@@ -41,10 +54,10 @@ customer_states = {
     REGISTER_PHONE: [registration_phone_text, registration_phone_contact],
     REGISTER_CONFIRM: [registration_confirm],
 
-    MAIN_MENU_CUSTOMER: [main_menu_customer],
-    MENU_CATEGORIES: [menu_categories, add_position, remove_position],
+    MAIN_MENU_CUSTOMER: [main_menu_customer, order_escalate_confirm],
+    MENU_CATEGORIES: [menu_categories, add_position, remove_position, order_escalate_confirm],
 
-    ORDER_CONFIRM_POSITIONS: [order_confirm],
+    ORDER_CONFIRM_POSITIONS: [order_confirm_create],
     ORDER_NOTES: [order_notes],
     ORDER_DELIVERY_TYPE: [order_delivery_type],
     ORDER_DELIVERY_NAME: [order_delivery_name],
@@ -54,10 +67,13 @@ customer_states = {
 
     ORDER_PAYMENT_TYPE: [order_payment_type],
     ORDER_PAYMENT_PAYBACK_FROM: [order_payment_payback_from],
-    ORDER_CONFIRM: []
+    ORDER_CONFIRM: [order_confirm]
 }
 
-supplier_states = {}
+supplier_states = {
+    MAIN_MENU_SUPPLIER: [main_menu_supplier, supplier_move_to_state_callback, supplier_fl_order_info_callback,
+                         supplier_cancel_callback]
+}
 
 deliver_states = {}
 

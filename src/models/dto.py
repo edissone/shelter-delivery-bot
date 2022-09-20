@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List
 
 from src.models import Serializable
-from src.models.const import DeliveryTypes, PaymentType
+from src.models.const import DeliveryTypes, PaymentType, OrderStatuses
 
 
 class User(Serializable):
@@ -55,7 +55,7 @@ class Order(Serializable):
                  notes: str = None, amount: float = None, payback_from: float = None, payback: float = None,
                  payment_code: str = None, payment_type: str = None, delivery_type: str = None,
                  delivery_info: DeliveryInfo = None, positions: List[PositionStub] = None,
-                 logs: List[OrderLog] = None):
+                 logs: List[OrderLog] = None, status: str = None):
         self.id = id
         self.owner_id = owner_id
         self.supplier_id = supplier_id
@@ -70,8 +70,36 @@ class Order(Serializable):
         self.delivery_info: DeliveryInfo = delivery_info
         self.positions: List[PositionStub] = positions if positions is not None else []
         self.logs: List[OrderLog] = logs
+        self.status = status
 
-    def __repr__(self):
+    def full_info(self, supplier_name: str, delivery_name: str):
+        result = ''
+        result += f'Номер заказа:{self.id}\n'
+        result += f'Клиент: {self.delivery_info.full_name}\n'
+        result += f'Оператор: {supplier_name}\n' if supplier_name is not None else ''
+        result += f'Статус: {OrderStatuses.get_by_name(self.status).label}\n'
+        ps_list = ''
+        for ps in self.positions:
+            ps_list += f'{ps.name}: {ps.count} ед., по {ps.price} грн.\n'
+        result += f'\n{ps_list}\n'
+        result += self.info_delivery()
+        result += f'\nСдача с: {self.payback_from}' if self.payment_type == PaymentType.CASH[0] else ''
+        result += f'\n\nДоставщик: {delivery_name}\n'if delivery_name is not None else ''
+        return result
+
+    def info(self):
+        result = ''
+        result += f'Номер заказа: {self.id}\n'
+        result += f'Клиент: {self.delivery_info.full_name}\n'
+        result += f'Тип доставки: {"Доставка" if self.delivery_type == DeliveryTypes.DELIVERY else "Самовывоз"}\n'
+        result += f'Статус: {OrderStatuses.get_by_name(self.status).label}\n'
+        ps_list = '\n'
+        for ps in self.positions:
+           ps_list += f'{ps.name}: {ps.count} ед., по {ps.price} грн.\n'
+        result += ps_list
+        return result
+
+    def info_delivery(self):
         result = ''
         result += f'Заметки к заказу: {"Отсутствуют" if self.notes is None else self.notes}\n'
         result += f'Тип доставки: {"Доставка" if self.delivery_type == DeliveryTypes.DELIVERY else "Самовывоз"}\n'
