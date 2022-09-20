@@ -5,8 +5,17 @@ from typing import Dict, List, Union, Set
 
 
 class Serializable:
-    def serialize(self):
-        return json.dumps(self.__dict__)
+    def serialize(self, inner: bool = False):
+        s_dict = self.__dict__
+        for k, v in s_dict.items():
+            if issubclass(type(v), Serializable):
+                v_s: Serializable = v
+                s_dict[k] = v_s.serialize(True)
+            elif issubclass(type(v), List):
+                i_v = v[0]
+                if issubclass(type(i_v), Serializable):
+                    s_dict[k] = list(map(lambda ps: ps.serialize(True), v))
+        return s_dict if inner else json.dumps(s_dict)
 
     @classmethod
     def deserialize(cls, json_data: Union[str, Dict]):

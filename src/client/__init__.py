@@ -15,6 +15,16 @@ class Client:
     __url = os.getenv("SERVICE_URL", "http://localhost:8080")
 
     @staticmethod
+    def _delete(api_url: str, response_type: Union[Type[str], Tuple[Type[List], Type[Serializable]], Type[Serializable]],
+             headers=None):
+        if headers is None:
+            headers = dict()
+        headers['content-type'] = APPLICATION_JSON
+        response = requests.delete(Client.__url + api_url, headers=headers)
+        log.info(f'DELETE {api_url} : {response.status_code}')
+        return Client.__extract_response(response, response_type)
+
+    @staticmethod
     def _get(api_url: str, response_type: Union[Type[str], Tuple[Type[List], Type[Serializable]], Type[Serializable]],
              headers=None):
         if headers is None:
@@ -25,12 +35,13 @@ class Client:
         return Client.__extract_response(response, response_type)
 
     @staticmethod
-    def _put(api_url: str, body: Serializable, response_type: Union[Type[str], Type[Serializable], Type[List]],
+    def _put(api_url: str, body: Union[Serializable, None],
+             response_type: Union[Type[str], Type[Serializable], Type[List]],
              headers: Dict = None):
         if headers is None:
             headers = dict()
         headers['content-type'] = APPLICATION_JSON
-        body_data = body.serialize()
+        body_data = body.serialize() if body is not None else None
         response = requests.put(Client.__url + api_url, body_data, headers=headers)
         log.info(f'PUT {api_url} : {response.status_code}')
         return Client.__extract_response(response, response_type)

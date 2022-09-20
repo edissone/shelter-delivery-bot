@@ -13,12 +13,21 @@ class MenuKeyboards(Keyboards):
         def main_menu(cls, role: str) -> ReplyKeyboardMarkup:
             if role == Roles.CUSTOMER:
                 return cls.__main_menu_customer()
+            elif role == Roles.SUPPLIER:
+                return cls.__main_menu_supplier()
 
         @classmethod
         def __main_menu_customer(cls) -> ReplyKeyboardMarkup:
             keyboard = [
                 [KeyboardButton(text='Меню')],
                 [KeyboardButton(text='Оформить заказ')]
+            ]
+            return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+        @classmethod
+        def __main_menu_supplier(cls) -> ReplyKeyboardMarkup:
+            keyboard = [
+                [KeyboardButton(text='Просмотреть заказы')]
             ]
             return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -49,4 +58,12 @@ class MenuKeyboards(Keyboards):
                     InlineKeyboardButton(
                         text='Убрать из заказа',
                         callback_data=CallbackPatterns.position_remove_pattern[1].replace('id', str(position.id))))
+            return InlineKeyboardMarkup.from_row(keyboard)
+
+        @classmethod
+        def notify_confirm(cls, order_id: int, time: str) -> InlineKeyboardMarkup:
+            keyboard = [InlineKeyboardButton(text='Оповестить',
+                                             callback_data=CallbackPatterns.order_notify_confirm[1].replace('id',
+                                                                                                            str(order_id)).replace(
+                                                 'time', time))]
             return InlineKeyboardMarkup.from_row(keyboard)

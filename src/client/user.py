@@ -1,3 +1,5 @@
+from typing import List
+
 from src.client import Client
 from src.models.dto import User
 from src.utils.cache import Cache
@@ -8,6 +10,11 @@ class UserClient(Client):
     def get(cls, user_id: str) -> User:
         cached: User = Cache.get_user(user_id)
         return cached if cached is not None else Cache.save_user(cls._get(f'/users/{user_id}', User))
+
+    @classmethod
+    def fetch(cls, role: str) -> List[User]:
+        cached: List[User] = Cache.get_suppliers()
+        return cached if cached is not None else Cache.save_suppliers(cls._get(f'/users/fetch/{role}', (List, User)))
 
     @classmethod
     def create(cls, user: User) -> User:
