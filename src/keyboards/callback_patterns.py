@@ -9,3 +9,5 @@ class CallbackPatterns:
 
     order_notify_confirm = (r'^onc_\d+_\d{2}:\d{2}_notify_callback$', 'onc_id_time_notify_callback')
 
+    order_deliver_cancel_callback = (r"^oda_\d+_cancel_callback$", 'oda_id_cancel_callback')
+    order_deliver_move_state_callback = (r"^oda_\d+_\d+_status_callback$", 'oda_id_code_status_callback')

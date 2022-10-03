@@ -4,7 +4,7 @@ from telegram import ReplyKeyboardMarkup, InlineKeyboardMarkup
 
 from src.keyboards.menu import MenuKeyboards
 from src.messages import Messages
-from src.models.dto import Position
+from src.models.dto import Position, Order
 
 
 class MenuMessages(Messages):
@@ -34,4 +34,10 @@ class MenuMessages(Messages):
     def notify_confirm(cls, code: str, order_id: int, time: str, card: str) -> Tuple[str, InlineKeyboardMarkup]:
         msg = cls._read_message_text('menu/notify_confirm').replace('$code$', code).replace('$card$', card)
         keyboard = MenuKeyboards.Inline.notify_confirm(order_id, time)
+        return msg, keyboard
+
+    @classmethod
+    def delivery_order_stub(cls, order: Order, list_view: bool) -> Tuple[str, InlineKeyboardMarkup]:
+        msg = order.info_delivery_stub()
+        keyboard = MenuKeyboards.Inline.delivery_order_actions(order, list_view)
         return msg, keyboard

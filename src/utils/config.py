@@ -7,7 +7,7 @@ from src.handlers.register import RegisterHandlers
 from src.handlers.states import REGISTER_NAME, REGISTER_PHONE, REGISTER_CONFIRM, REGISTER_START, MAIN_MENU_CUSTOMER, \
     MENU_CATEGORIES, ORDER_CONFIRM_POSITIONS, ORDER_DELIVERY_TYPE, ORDER_DELIVERY_NAME, ORDER_DELIVERY_PHONE, \
     ORDER_DELIVERY_ADDRESS, ORDER_DELIVERY_NOTES, ORDER_NOTES, ORDER_PAYMENT_TYPE, ORDER_PAYMENT_PAYBACK_FROM, \
-    ORDER_CONFIRM, MAIN_MENU_SUPPLIER
+    ORDER_CONFIRM, MAIN_MENU_SUPPLIER, MAIN_MENU_DELIVER
 from src.keyboards.callback_patterns import CallbackPatterns
 
 registration_start = MessageHandler(Filters.text, RegisterHandlers.register_start)
@@ -47,6 +47,11 @@ supplier_fl_order_info_callback = CallbackQueryHandler(callback=MenuHandlers.sup
                                                        pattern=CallbackPatterns.order_supplier_fl_callback[0])
 supplier_cancel_callback = CallbackQueryHandler(callback=MenuHandlers.supplier_cancel_callback,
                                                 pattern=CallbackPatterns.order_supplier_cancel_callback[0])
+deliver_cancel_callback = CallbackQueryHandler(callback=MenuHandlers.deliver_cancel_callback,
+                                               pattern=CallbackPatterns.order_deliver_cancel_callback[0])
+deliver_main_menu = MessageHandler(Filters.text, MenuHandlers.main_menu_delivery)
+deliver_move_to_state_callback = CallbackQueryHandler(callback=MenuHandlers.deliver_move_to_state_callback,
+                                                      pattern=CallbackPatterns.order_deliver_move_state_callback[0])
 
 customer_states = {
     REGISTER_START: [registration_start],
@@ -75,7 +80,9 @@ supplier_states = {
                          supplier_cancel_callback]
 }
 
-deliver_states = {}
+deliver_states = {
+    MAIN_MENU_DELIVER: [deliver_main_menu, deliver_move_to_state_callback, deliver_cancel_callback]
+}
 
 states = {
     **customer_states,
