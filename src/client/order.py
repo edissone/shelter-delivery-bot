@@ -6,6 +6,10 @@ from src.models.dto import Order
 
 class OrderClient(Client):
     @classmethod
+    def fetch_assigned(cls, user_id: str, active: bool = False):
+        return cls._get(f'/orders/fetch/assigned/{user_id}?active={active}', Order)
+
+    @classmethod
     def fetch(cls, status: str = None, active: bool = False) -> List[Order]:
         return cls._get(
             f'/orders/all{f"/?status={status}" if status is not None else ""}{f"/?active={True}" if active else ""}',
@@ -38,3 +42,11 @@ class OrderClient(Client):
     @classmethod
     def got_self(cls, order_id: int, tg_id: str) -> Order:
         return cls._put(f'/orders/got-self/{order_id}/{tg_id}', None, Order)
+
+    @classmethod
+    def going(cls, order_id: int, tg_id: str) -> Order:
+        return cls._put(f'/orders/going/{order_id}/{tg_id}', None, Order)
+
+    @classmethod
+    def delivered(cls, order_id: int, tg_id: str) -> Order:
+        return cls._put(f'/orders/delivered/{order_id}/{tg_id}', None, Order)

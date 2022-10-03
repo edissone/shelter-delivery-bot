@@ -33,7 +33,8 @@ class OrderStatuses:
     PREPARING = StatusItem('PREPARING', 'Готовится', 210, True, Roles.SUPPLIER)
     READY_DEL = StatusItem('READY_DEL', 'Готов для доставки', 300, True, Roles.SUPPLIER)
     READY_SELF = StatusItem('READY_SELF', 'Готов для самовывоза', 310, True, Roles.SUPPLIER)
-    GOING = StatusItem('GOING', 'В пути', 400, True, Roles.DELIVER)
+    ASSIGNED_DEL = StatusItem('ASSIGNED_DEL', 'В обработке доставщиком', 400, True, Roles.DELIVER)
+    GOING = StatusItem('GOING', 'В пути', 410, True, Roles.DELIVER)
     DELIVERED = StatusItem('DELIVERED', 'Доставлен', 500, False, Roles.DELIVER)
     GOT_SELF = StatusItem('GOT_SELF', 'Забран', 510, False, Roles.SUPPLIER)
     DECLINED_CUSTOMER = StatusItem('DECLINED_CUSTOMER', 'Отменен клиентом', -100, False)
@@ -41,11 +42,11 @@ class OrderStatuses:
     DECLINED_DELIVER = StatusItem('DECLINED_DELIVER', 'Отменен доставщиком', -300, False)
 
     __list = [CREATED, ASSIGNED, CONFIRM, PREPARING, READY_DEL, READY_SELF, GOING, DELIVERED,
-              GOT_SELF, DECLINED_CUSTOMER, DECLINED_SUPPLIER, DECLINED_DELIVER]
+              GOT_SELF, DECLINED_CUSTOMER, DECLINED_SUPPLIER, DECLINED_DELIVER, ASSIGNED_DEL]
 
     __workflows = {
-        f'{PaymentType.CARD[0]}/{DeliveryTypes.DELIVERY}': [100, 110, 200, 210, 300, 400, 500],
-        f'{PaymentType.CASH[0]}/{DeliveryTypes.DELIVERY}': [100, 110, 210, 300, 400, 500],
+        f'{PaymentType.CARD[0]}/{DeliveryTypes.DELIVERY}': [100, 110, 200, 210, 300, 400, 410, 500],
+        f'{PaymentType.CASH[0]}/{DeliveryTypes.DELIVERY}': [100, 110, 210, 300, 400, 410, 500],
         f'{PaymentType.CARD[0]}/{DeliveryTypes.SELF}': [100, 110, 200, 210, 310, 510],
         f'{PaymentType.CASH[0]}/{DeliveryTypes.SELF}': [100, 110, 210, 310, 510]
     }

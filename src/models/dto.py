@@ -118,6 +118,26 @@ class Order(Serializable):
         result += payment_type
         return result
 
+    def info_delivery_stub(self):
+        result = ''
+        delivery_info = ''
+        delivery_info += f'Имя получателя: {self.delivery_info.full_name}\n'
+        delivery_info += f'Номер получателя: {self.delivery_info.phone}\n'
+        delivery_info += f'Адрес доставки: {self.delivery_info.address}\n'
+        delivery_info += f'Заметки к доставке: {"Отсутствуют" if self.delivery_info.notes is None else self.delivery_info.notes}\n'
+        result += delivery_info
+        payment_type = ''
+        payment_type += f'Тип оплаты: {PaymentType.CARD[1] if self.payment_type == PaymentType.CARD[0] else PaymentType.CASH[1]}\n'
+        if payment_type == PaymentType.CASH[0]:
+            payment_type += f'Сдача с:{self.payback_from}\n'
+        payment_type += f'Сумма заказа: {self.amount}'
+        result += payment_type
+        ps_list = '\n'
+        for ps in self.positions:
+            ps_list += f'{ps.name}: {ps.count} ед., по {ps.price} грн.\n'
+        result += ps_list
+        return result
+
     def add_position_stub(self, position: Position):
         exist = False
         for ps in self.positions:

@@ -247,6 +247,10 @@ class OrderHandlers(Handlers):
                 bot.send_message(tg_user.id, 'Что-то пошло не так =(', parse_mode=ParseMode.HTML,
                                  reply_markup=Keyboards.remove())
                 return MAIN_MENU_CUSTOMER
+        elif message.text == 'Изменить':
+            msg, keyboard = OrderMessages.order_confirm_create()
+            bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            return ORDER_NOTES
 
     @classmethod
     def escalate_confirm(cls, update: Update, context: CallbackContext) -> int:
@@ -271,5 +275,5 @@ class OrderHandlers(Handlers):
                                  f'{order.delivery_info.full_name} просит проверить оплату заказа номер {order.id}: {order.payment_code}')
         else:
             cache['ESCALATE_MSG'] = message.message_id
-            query.answer(f'Мы уже оповестили оператора. Повторно стукнуть можна после {data[1]}', show_alert=True)
+            query.answer(f'Мы уже оповестили оператора. Повторно стукнуть можно после {data[1]}', show_alert=True)
         return MAIN_MENU_CUSTOMER

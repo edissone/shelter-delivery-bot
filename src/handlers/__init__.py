@@ -22,9 +22,9 @@ class Handlers:
             msg, keyboard = RegisterMessages.register()
             bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             return REGISTER_START
-        if user.role in [Roles.CUSTOMER, Roles.SUPPLIER]:
+        if user.role in [Roles.CUSTOMER, Roles.SUPPLIER, Roles.DELIVER]:
             msg, keyboard = MenuMessages.main_menu(user.role)
             bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-            return MAIN_MENU_CUSTOMER if user.role == Roles.CUSTOMER else\
-                MAIN_MENU_SUPPLIER if user.role == Roles.SUPPLIER else\
-                MAIN_MENU_DELIVER
+            return MAIN_MENU_CUSTOMER if user.role == Roles.CUSTOMER else \
+                MAIN_MENU_SUPPLIER if user.role == Roles.SUPPLIER else \
+                    MAIN_MENU_DELIVER
