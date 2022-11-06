@@ -306,6 +306,7 @@ class OrderHandlers(Handlers):
                 del cache[ORDER_TO_SUBMIT]
                 bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML,
                                  reply_markup=MenuMessages.main_menu(Roles.CUSTOMER)[1])
+                cache['ESCALATE_MSG'] = message.message_id
                 return MAIN_MENU_CUSTOMER
             else:
                 bot.send_message(tg_user.id, 'Упс, щось трапилось =(', parse_mode=ParseMode.HTML,
@@ -338,6 +339,6 @@ class OrderHandlers(Handlers):
                 bot.send_message(order.supplier_id,
                                  f'{order.delivery_info.full_name} просит проверить оплату заказа номер {order.id}: {order.payment_code}')
         else:
-            cache['ESCALATE_MSG'] = message.message_id
             query.answer(f'Вже сповістили. Повторно можна після {data[1]}', show_alert=True)
+        cache['ESCALATE_MSG'] = message.message_id
         return MAIN_MENU_CUSTOMER

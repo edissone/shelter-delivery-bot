@@ -335,10 +335,11 @@ def assign_supplier(update: Update, context: CallbackContext, order_id: int) -> 
         )
         msg, keyboard = OrderMessages.order_stub(order, True)
         bot.send_message(order.supplier_id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-        bot.send_message(
-            order.owner_id,
-            f'Ваше замовлення в обробці{" і вже готується 👨🏾‍🍳 🍔" if OrderStatuses.get_by_name(order.status) == OrderStatuses.PREPARING else " 📝"}',
-            parse_mode=ParseMode.HTML
+        cc_msg = f'Ваше замовлення в обробці{" і вже готується 👨🏾‍🍳 🍔" if OrderStatuses.get_by_name(order.status) == OrderStatuses.PREPARING else " 📝"}'
+        bot.send_animation(
+            chat_id=order.owner_id,
+            animation=gif(order.status),
+            caption=cc_msg,
         )
         if order.payment_type == PaymentType.CARD[0]:
             str_time = get_time(True)
@@ -434,12 +435,11 @@ def ready_self_supplier(update: Update, context: CallbackContext, order_id: int)
         )
         msg, keyboard = OrderMessages.order_stub(order, True)
         bot.send_message(order.supplier_id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-        cc_msg = f'Ура! Замовлення вже очікує на вас =)',
+        cc_msg = f'Ура! Замовлення вже очікує на вас =)'
         bot.send_animation(
             chat_id=order.owner_id,
             animation=gif(order.status),
             caption=cc_msg,
-            parse_mode=ParseMode.HTML,
         )
     return MAIN_MENU_SUPPLIER
 
@@ -459,12 +459,11 @@ def got_self_supplier(update: Update, context: CallbackContext, order_id: int) -
             text=f'Заказ с номером {order_id} перешел в состояние <i>{OrderStatuses.get_by_name(order.status).label}</i>, ЗАКРЫТ',
             parse_mode=ParseMode.HTML
         )
-        cc_msg = f'Отримали? Приємного смаку і до зустрічі 😏',
+        cc_msg = f'Отримали? Приємного смаку і до зустрічі 😏'
         bot.send_animation(
             chat_id=order.owner_id,
             animation=gif(order.status),
             caption=cc_msg,
-            parse_mode=ParseMode.HTML,
         )
     return MAIN_MENU_SUPPLIER
 
