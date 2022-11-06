@@ -11,16 +11,16 @@ class OrderKeyboards(Keyboards):
         @classmethod
         def create_order(cls) -> ReplyKeyboardMarkup:
             keyboard = [
-                KeyboardButton('Подтвердить'),
-                KeyboardButton('Изменить')
+                KeyboardButton('Підтвердити ✅'),
+                KeyboardButton('Змінити 🔄')
             ]
             return ReplyKeyboardMarkup.from_column(keyboard, resize_keyboard=True)
 
         @classmethod
         def order_confirm(cls) -> ReplyKeyboardMarkup:
             keyboard = [
-                [KeyboardButton('Доставляем')],
-                [KeyboardButton('Сами заберем')]
+                [KeyboardButton('Доставка 🏍')],
+                [KeyboardButton('Заберу самостійно 🚶')]
             ]
             return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -36,7 +36,7 @@ class OrderKeyboards(Keyboards):
 
         @classmethod
         def confirm_payment(cls) -> ReplyKeyboardMarkup:
-            keyboard = [KeyboardButton('Подтвердить оплату'), KeyboardButton('Отменить заказ')]
+            keyboard = [KeyboardButton('Підтвердити оплату 💳'), KeyboardButton('Скасувати замовлення 🚫')]
             return ReplyKeyboardMarkup.from_column(keyboard)
 
     class Inline:
@@ -86,9 +86,16 @@ class OrderKeyboards(Keyboards):
         @classmethod
         def update_escalate_time(cls, order_id, time_str: str):
             return InlineKeyboardMarkup.from_button(
-                InlineKeyboardButton(text='Оповестить',
+                InlineKeyboardButton(text='Сповістити 💸',
                                      callback_data=
                                      CallbackPatterns.order_notify_confirm[1].replace('id',
                                                                                       order_id).replace(
                                          'time', time_str))
             )
+
+        @classmethod
+        def owner_order_cancel(cls, order: Order):
+            keyboard = [InlineKeyboardButton(
+                text='Скасувати замовлення 🚫',
+                callback_data=CallbackPatterns.order_owner_cancel_callback[1].replace('id', str(order.id)))]
+            return InlineKeyboardMarkup.from_row(keyboard)

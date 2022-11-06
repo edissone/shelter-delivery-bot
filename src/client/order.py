@@ -6,6 +6,10 @@ from src.models.dto import Order
 
 class OrderClient(Client):
     @classmethod
+    def get_by_owner(cls, owner_id: str):
+        return cls._get(f'/orders/owner/{owner_id}', (List, Order))
+
+    @classmethod
     def fetch_assigned(cls, user_id: str, active: bool = False):
         return cls._get(f'/orders/fetch/assigned/{user_id}?active={active}', Order)
 
@@ -46,6 +50,10 @@ class OrderClient(Client):
     @classmethod
     def going(cls, order_id: int, tg_id: str) -> Order:
         return cls._put(f'/orders/going/{order_id}/{tg_id}', None, Order)
+
+    @classmethod
+    def arrived(cls, order_id: int, tg_id: str) -> Order:
+        return cls._put(f'/orders/arrived/{order_id}/{tg_id}', None, Order)
 
     @classmethod
     def delivered(cls, order_id: int, tg_id: str) -> Order:

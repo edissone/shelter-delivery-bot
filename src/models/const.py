@@ -1,5 +1,9 @@
 from typing import Union, List
 
+from src.client.resource import ResourceClient
+
+resource_params = ResourceClient.fetch()
+
 
 class Roles:
     CUSTOMER = 'CUSTOMER'
@@ -13,8 +17,8 @@ class DeliveryTypes:
 
 
 class PaymentType:
-    CARD = ('CARD', 'Безналичный')
-    CASH = ('CASH', 'Наличный')
+    CARD = ('CARD', 'Картка 💳')
+    CASH = ('CASH', 'Готівка 💵')
 
 
 class StatusItem:
@@ -27,26 +31,32 @@ class StatusItem:
 
 
 class OrderStatuses:
-    CREATED = StatusItem('CREATED', 'Создан', 100, True)
-    ASSIGNED = StatusItem('ASSIGNED', 'В обработке', 110, True, Roles.SUPPLIER)
-    CONFIRM = StatusItem('CONFIRM', 'Подтвержден', 200, True, Roles.SUPPLIER)
-    PREPARING = StatusItem('PREPARING', 'Готовится', 210, True, Roles.SUPPLIER)
-    READY_DEL = StatusItem('READY_DEL', 'Готов для доставки', 300, True, Roles.SUPPLIER)
-    READY_SELF = StatusItem('READY_SELF', 'Готов для самовывоза', 310, True, Roles.SUPPLIER)
-    ASSIGNED_DEL = StatusItem('ASSIGNED_DEL', 'В обработке доставщиком', 400, True, Roles.DELIVER)
-    GOING = StatusItem('GOING', 'В пути', 410, True, Roles.DELIVER)
-    DELIVERED = StatusItem('DELIVERED', 'Доставлен', 500, False, Roles.DELIVER)
-    GOT_SELF = StatusItem('GOT_SELF', 'Забран', 510, False, Roles.SUPPLIER)
+    # todo v2: fetch from service
+    CREATED = StatusItem('CREATED', 'Створено', 100, True)
+    ASSIGNED = StatusItem('ASSIGNED', 'Опрацовується', 110, True, Roles.SUPPLIER)
+    CONFIRM = StatusItem('CONFIRM', 'Підтверджено', 200, True, Roles.SUPPLIER)
+    PREPARING = StatusItem('PREPARING', 'Готується', 210, True, Roles.SUPPLIER)
+    READY_DEL = StatusItem('READY_DEL', 'Готово для доставки', 300, True, Roles.SUPPLIER)
+    READY_SELF = StatusItem('READY_SELF', 'Готов для самовивозу', 310, True, Roles.SUPPLIER)
+    ASSIGNED_DEL = StatusItem('ASSIGNED_DEL', 'Опрацовується курʼєром', 400, True, Roles.DELIVER)
+    GOING = StatusItem('GOING', 'В дорозі', 410, True, Roles.DELIVER)
+    ARRIVED = StatusItem('ARRIVED', 'Курʼєр прибув', 420, True, Roles.DELIVER)
+    DELIVERED = StatusItem('DELIVERED', 'Доставлено', 500, False, Roles.DELIVER)
+    GOT_SELF = StatusItem('GOT_SELF', 'Забрано', 510, False, Roles.SUPPLIER)
     DECLINED_CUSTOMER = StatusItem('DECLINED_CUSTOMER', 'Отменен клиентом', -100, False)
     DECLINED_SUPPLIER = StatusItem('DECLINED_SUPPLIER', 'Отменен оператором', -200, False)
     DECLINED_DELIVER = StatusItem('DECLINED_DELIVER', 'Отменен доставщиком', -300, False)
 
-    __list = [CREATED, ASSIGNED, CONFIRM, PREPARING, READY_DEL, READY_SELF, GOING, DELIVERED,
+    __list = [CREATED, ASSIGNED, CONFIRM, PREPARING, READY_DEL, READY_SELF, GOING, ARRIVED, DELIVERED,
               GOT_SELF, DECLINED_CUSTOMER, DECLINED_SUPPLIER, DECLINED_DELIVER, ASSIGNED_DEL]
 
+    @classmethod
+    def active(cls) -> List[StatusItem]:
+        return cls.__list[:8]
+
     __workflows = {
-        f'{PaymentType.CARD[0]}/{DeliveryTypes.DELIVERY}': [100, 110, 200, 210, 300, 400, 410, 500],
-        f'{PaymentType.CASH[0]}/{DeliveryTypes.DELIVERY}': [100, 110, 210, 300, 400, 410, 500],
+        f'{PaymentType.CARD[0]}/{DeliveryTypes.DELIVERY}': [100, 110, 200, 210, 300, 400, 410, 420, 500],
+        f'{PaymentType.CASH[0]}/{DeliveryTypes.DELIVERY}': [100, 110, 210, 300, 400, 410, 420, 500],
         f'{PaymentType.CARD[0]}/{DeliveryTypes.SELF}': [100, 110, 200, 210, 310, 510],
         f'{PaymentType.CASH[0]}/{DeliveryTypes.SELF}': [100, 110, 210, 310, 510]
     }

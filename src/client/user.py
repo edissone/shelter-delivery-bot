@@ -13,7 +13,7 @@ class UserClient(Client):
 
     @classmethod
     def fetch(cls, role: str) -> List[User]:
-        cached: List[User] = Cache.get_suppliers()
+        cached: List[User] = Cache.get_by_role(role)
         return cached if cached is not None else Cache.save_suppliers(cls._get(f'/users/fetch/{role}', (List, User)))
 
     @classmethod

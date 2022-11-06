@@ -1,6 +1,7 @@
 from typing import Dict, List
 
-from telegram import Update, ParseMode
+from telegram import Update, ParseMode, InlineKeyboardMarkup
+from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 
 from src.client.order import OrderClient
@@ -14,12 +15,13 @@ from src.keyboards import Keyboards
 from src.keyboards.order import OrderKeyboards
 from src.messages.menu import MenuMessages
 from src.messages.order import OrderMessages
-from src.models.const import DeliveryTypes, PaymentType, Roles
+from src.models.const import DeliveryTypes, PaymentType, Roles, OrderStatuses, resource_params
 from src.models.dto import Order, Position, DeliveryInfo, User
 from src.utils.cache import Cache
-from src.utils.exceptions import ServiceException, ActiveOrdersExistException
+from src.utils.exceptions import ServiceException, ActiveOrdersExistException, NotFoundException, InvalidStateException
 from src.utils.func import compare_time, get_time, in_order
 from src.utils.logger import log
+from src.utils.timer import in_time
 from src.utils.validator import Validator
 
 ORDER_TO_SUBMIT = 'order_to_submit'
@@ -32,35 +34,92 @@ class OrderHandlers(Handlers):
     def create_order(cls, update: Update, context: CallbackContext) -> int:
         tg_user = update.effective_user
         bot = context.bot
+        if not in_time():
+            bot.send_message(tg_user.id, f'Нажаль, зараз ми не працюємо. Спробуйте у {resource_params["work_time"]} 🕓',
+                             parse_mode=ParseMode.HTML)
+            return MAIN_MENU_CUSTOMER
         cache = Cache.get(tg_user.id)
         order: Order = cache.get(ORDER_TO_SUBMIT)
-
-        if order is None or len(order.positions) < 1:
-            err_msg = 'Перед тем, как оформить заказ - выберите желаемые позиции.'
+        active = list()
+        try:
+            owner_orders: List[Order] = OrderClient.get_by_owner(tg_user.id)
+            active = list(filter(lambda o: OrderStatuses.get_by_name(o.status) in OrderStatuses.active(), owner_orders))
+        except NotFoundException as nfe:
+            log.info(nfe.error_message)
+        if (order is None or len(order.positions) < 1) and len(active) == 0:
+            err_msg = 'Перед тим, як оформити замовлення - оберіть бажані позиціі.'
             positions: Dict[str, Dict[int, Position]] = PositionClient.fetch()
             categories = list(positions.keys())
             _, keyboard = MenuMessages.menu_categories(categories)
             bot.send_message(tg_user.id, err_msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             return MENU_CATEGORIES
-
+        elif len(active) == 1:
+            for active_order in active:
+                msg, keyboard = OrderMessages.owner_order_info(active_order)
+                bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            return MAIN_MENU_CUSTOMER
         msg, keyboard = OrderMessages.create_order(order)
         bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
         return ORDER_CONFIRM_POSITIONS
+
+    @classmethod
+    def order_owner_cancel_callback(cls, update: Update, context: CallbackContext) -> int:
+        order_id = int(update.callback_query.data.split("_")[1])
+        tg_user = update.effective_user
+        bot = context.bot
+        query = update.callback_query
+        message = query.message
+        try:
+            order: Order = OrderClient.decline(order_id, tg_user.id)
+            if order is not None:
+                query.answer()
+                bot.edit_message_reply_markup(message_id=message.message_id, chat_id=tg_user.id,
+                                              reply_markup=InlineKeyboardMarkup.from_row([]))
+                bot.edit_message_text(
+                    message_id=message.message_id, chat_id=tg_user.id,
+                    text=f'Ви скасували своє замовлення.',
+                    parse_mode=ParseMode.HTML
+                )
+                try:
+                    bot.send_message(
+                        order.supplier_id,
+                        f'Заказ с номером {order_id} перешел в состояние <i>{OrderStatuses.get_by_name(order.status).label}</i>',
+                        parse_mode=ParseMode.HTML
+                    )
+                    if order.delivery_id is not None:
+                        bot.send_message(
+                            order.delivery_id,
+                            f'Заказ с номером {order_id} перешел в состояние <i>{OrderStatuses.get_by_name(order.status).label}</i>',
+                            parse_mode=ParseMode.HTML
+                        )
+                except BadRequest:
+                    pass
+        except InvalidStateException as ise:
+            query.answer(text='Замовлення вже скасовано =)')
+            bot.delete_message(chat_id=tg_user.id, message_id=query.message.message_id)
+            log.warn('{}:{}', ise.error, ise.error_message)
+        return MAIN_MENU_CUSTOMER
 
     @classmethod
     def order_confirm_create(cls, update: Update, context: CallbackContext) -> int:
         tg_user = update.effective_user
         bot = context.bot
         operation = update.effective_message.text
-        if operation == 'Подтвердить':
+        cache = Cache.get(tg_user.id)
+        order: Order = cache.get(ORDER_TO_SUBMIT)
+        if operation == 'Підтвердити ✅':
+            if not in_time():
+                bot.send_message(tg_user.id,
+                                 f'Нажаль, зараз ми не працюємо. Спробуйте у {resource_params["work_time"]}',
+                                 parse_mode=ParseMode.HTML)
+                del cache[ORDER_TO_SUBMIT]
+                return MAIN_MENU_CUSTOMER
             msg, keyboard = OrderMessages.order_confirm_create()
             bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             return ORDER_NOTES
-        elif operation == 'Изменить':
+        elif operation == 'Змінити 🔄':
             positions: Dict[str, Dict[int, Position]] = PositionClient.fetch()
             categories = list(positions.keys())
-            cache = Cache.get(tg_user.id)
-            order: Order = cache.get(ORDER_TO_SUBMIT)
             if order is not None:
                 order_positions = list(map(lambda o: Cache.get_positions(id=o.id), order.positions))
                 for op in order_positions:
@@ -78,7 +137,7 @@ class OrderHandlers(Handlers):
         tg_user = update.effective_user
         bot = context.bot
         order_notes = update.effective_message.text
-        if order_notes != 'Пропустить':
+        if order_notes != 'Пропустити':
             cache = Cache.get(tg_user.id)
             order: Order = cache.get(ORDER_TO_SUBMIT)
             order.notes = order_notes
@@ -94,17 +153,16 @@ class OrderHandlers(Handlers):
         delivery_msg = update.effective_message.text
         user = UserClient.get(tg_user.id)
         delivery_type: str
-        if delivery_msg == 'Доставляем':
+        if delivery_msg == 'Доставка 🏍':
             delivery_type = DeliveryTypes.DELIVERY
-        elif delivery_msg == 'Сами заберем':
+        elif delivery_msg == 'Заберу самостійно 🚶':
             delivery_type = DeliveryTypes.SELF
         else:
-            raise RuntimeError('Какая-то хуйня')
+            raise RuntimeError('Упс :( Щось трапилось')
         cache = Cache.get(tg_user.id)
         order: Order = cache.get(ORDER_TO_SUBMIT)
         order.delivery_type = delivery_type
-        msg, keyboard = OrderMessages.order_delivery_type(user.full_name,
-                                                          'доставку' if delivery_type == DeliveryTypes.DELIVERY else 'cамовывоз')
+        msg, keyboard = OrderMessages.order_delivery_type(user.full_name)
         bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
         return ORDER_DELIVERY_NAME
 
@@ -130,7 +188,7 @@ class OrderHandlers(Handlers):
         cache = Cache.get(tg_user.id)
         order: Order = cache.get(ORDER_TO_SUBMIT)
         if text is None or not Validator.is_phone_number(text):
-            err_msg = 'Неверный формат номера. Попробуйте еще раз.'
+            err_msg = 'Неправильний формат, спробуйте ще раз.'
             user = UserClient.get(tg_user.id)
             _, keyboard = OrderMessages.order_delivery_name(user.phone, order.delivery_type)
             bot.send_message(tg_user.id, err_msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
@@ -166,7 +224,7 @@ class OrderHandlers(Handlers):
         tg_user = update.effective_user
         bot = context.bot
         delivery_notes = update.effective_message.text
-        if delivery_notes == 'Пропустить':
+        if delivery_notes == 'Пропустити':
             msg, keyboard = OrderMessages.order_delivery_notes(False)
             bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
         else:
@@ -202,14 +260,14 @@ class OrderHandlers(Handlers):
         try:
             payback_from = float(message.text)
         except ValueError:
-            err_msg = 'Неверный формат. Попробуйте еще раз.'
+            err_msg = 'Неправильний формат, спробуйте ще раз.'
             _, keyboard = OrderMessages.order_payment_type(PaymentType.CASH[0], None)
             bot.send_message(tg_user.id, err_msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             return ORDER_PAYMENT_PAYBACK_FROM
         cache = Cache.get(tg_user.id)
         order: Order = cache.get(ORDER_TO_SUBMIT)
         if payback_from < order.amount:
-            err_msg = f'Сумма для сдачи должна быть больше {order.amount}'
+            err_msg = f'Сума для решти повинна бути більша за {order.amount}'
             _, keyboard = OrderMessages.order_payment_type(PaymentType.CASH[0], None)
             bot.send_message(tg_user.id, err_msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             return ORDER_PAYMENT_PAYBACK_FROM
@@ -224,14 +282,19 @@ class OrderHandlers(Handlers):
         tg_user = update.effective_user
         bot = context.bot
         message = update.effective_message
-        if message.text == 'Подтвердить':
+        if message.text == 'Підтвердити ✅':
+            if not in_time():
+                bot.send_message(tg_user.id,
+                                 f'Упс, нажаль ви не встигли 😭 , зараз ми не працюємо. Спробуйте у {resource_params["work_time"]} 🕓',
+                                 parse_mode=ParseMode.HTML)
+                return MAIN_MENU_CUSTOMER
             cache = Cache.get(tg_user.id)
             order: Order = cache.get(ORDER_TO_SUBMIT)
             created_order = None
             try:
                 created_order = OrderClient.create(order)
             except ActiveOrdersExistException as aoe:
-                bot.send_message(tg_user.id, 'Заказ уже создан', parse_mode=ParseMode.HTML,
+                bot.send_message(tg_user.id, 'Замовлення вже створено', parse_mode=ParseMode.HTML,
                                  reply_markup=Keyboards.remove())
                 log.error(f'{aoe.error}: {aoe.error_message}')
             if created_order is not None:
@@ -241,13 +304,14 @@ class OrderHandlers(Handlers):
                     bot.send_message(supp.tg_id, s_msg, parse_mode=ParseMode.HTML, reply_markup=s_keyboard)
                 msg = OrderMessages.order_confirm()
                 del cache[ORDER_TO_SUBMIT]
-                bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=Keyboards.remove())
+                bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML,
+                                 reply_markup=MenuMessages.main_menu(Roles.CUSTOMER)[1])
                 return MAIN_MENU_CUSTOMER
             else:
-                bot.send_message(tg_user.id, 'Что-то пошло не так =(', parse_mode=ParseMode.HTML,
-                                 reply_markup=Keyboards.remove())
+                bot.send_message(tg_user.id, 'Упс, щось трапилось =(', parse_mode=ParseMode.HTML,
+                                 reply_markup=MenuMessages.main_menu(Roles.CUSTOMER)[1])
                 return MAIN_MENU_CUSTOMER
-        elif message.text == 'Изменить':
+        elif message.text == 'Змінити 🔄':
             msg, keyboard = OrderMessages.order_confirm_create()
             bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             return ORDER_NOTES
@@ -266,7 +330,7 @@ class OrderHandlers(Handlers):
 
             cache['ESCALATE_MSG'] = message.message_id
             if order is not None:
-                query.answer(f'Мы оповестили оператора о вашей оплате', show_alert=True)
+                query.answer(f'Ми сповістили оператора', show_alert=True)
                 time = get_time(False)
                 em_keyboard = OrderKeyboards.Inline.update_escalate_time(order_id, time)
                 bot.edit_message_reply_markup(chat_id=tg_user.id, message_id=message.message_id,
@@ -275,5 +339,5 @@ class OrderHandlers(Handlers):
                                  f'{order.delivery_info.full_name} просит проверить оплату заказа номер {order.id}: {order.payment_code}')
         else:
             cache['ESCALATE_MSG'] = message.message_id
-            query.answer(f'Мы уже оповестили оператора. Повторно стукнуть можно после {data[1]}', show_alert=True)
+            query.answer(f'Вже сповістили. Повторно можна після {data[1]}', show_alert=True)
         return MAIN_MENU_CUSTOMER

@@ -39,6 +39,9 @@ order_escalate_confirm = CallbackQueryHandler(callback=OrderHandlers.escalate_co
 
 order_confirm = MessageHandler(Filters.text, OrderHandlers.order_confirm)
 
+order_owner_cancel_callback = CallbackQueryHandler(callback=OrderHandlers.order_owner_cancel_callback,
+                                                   pattern=CallbackPatterns.order_owner_cancel_callback[0])
+
 main_menu_supplier = MessageHandler(Filters.text, MenuHandlers.main_menu_supplier)
 
 supplier_move_to_state_callback = CallbackQueryHandler(callback=MenuHandlers.supplier_move_to_state_callback,
@@ -59,8 +62,9 @@ customer_states = {
     REGISTER_PHONE: [registration_phone_text, registration_phone_contact],
     REGISTER_CONFIRM: [registration_confirm],
 
-    MAIN_MENU_CUSTOMER: [main_menu_customer, order_escalate_confirm],
-    MENU_CATEGORIES: [menu_categories, add_position, remove_position, order_escalate_confirm],
+    MAIN_MENU_CUSTOMER: [main_menu_customer, order_escalate_confirm, order_owner_cancel_callback],
+    MENU_CATEGORIES: [menu_categories, add_position, remove_position, order_escalate_confirm,
+                      order_owner_cancel_callback],
 
     ORDER_CONFIRM_POSITIONS: [order_confirm_create],
     ORDER_NOTES: [order_notes],
@@ -102,4 +106,7 @@ class Bot:
                 states=states,
                 fallbacks=[CommandHandler('start', Handlers.start)]
             )
+        )
+        self.updater.dispatcher.add_handler(
+            CommandHandler('help', Handlers.help)
         )

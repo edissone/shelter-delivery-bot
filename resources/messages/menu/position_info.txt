@@ -1,4 +1,4 @@
 <b>$name$</b>
 <i>$description$</i>,
 <i>$weight$</i>
-Цена: <b>$price$</b>
+Ціна: <b>$price$</b>

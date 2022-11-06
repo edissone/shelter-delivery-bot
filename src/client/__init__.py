@@ -12,7 +12,7 @@ APPLICATION_JSON = 'application/json'
 
 
 class Client:
-    __url = os.getenv("SERVICE_URL", "http://localhost:8080")
+    _url = os.getenv("SERVICE_URL", "http://localhost:8080")
 
     @staticmethod
     def _delete(api_url: str, response_type: Union[Type[str], Tuple[Type[List], Type[Serializable]], Type[Serializable]],
@@ -20,7 +20,7 @@ class Client:
         if headers is None:
             headers = dict()
         headers['content-type'] = APPLICATION_JSON
-        response = requests.delete(Client.__url + api_url, headers=headers)
+        response = requests.delete(Client._url + api_url, headers=headers)
         log.info(f'DELETE {api_url} : {response.status_code}')
         return Client.__extract_response(response, response_type)
 
@@ -30,7 +30,7 @@ class Client:
         if headers is None:
             headers = dict()
         headers['content-type'] = APPLICATION_JSON
-        response = requests.get(Client.__url + api_url, headers=headers)
+        response = requests.get(Client._url + api_url, headers=headers)
         log.info(f'GET {api_url} : {response.status_code}')
         return Client.__extract_response(response, response_type)
 
@@ -42,7 +42,7 @@ class Client:
             headers = dict()
         headers['content-type'] = APPLICATION_JSON
         body_data = body.serialize() if body is not None else None
-        response = requests.put(Client.__url + api_url, body_data, headers=headers)
+        response = requests.put(Client._url + api_url, body_data, headers=headers)
         log.info(f'PUT {api_url} : {response.status_code}')
         return Client.__extract_response(response, response_type)
 
@@ -53,7 +53,7 @@ class Client:
             headers = dict()
         headers['content-type'] = APPLICATION_JSON
         body_data = body.serialize()
-        response = requests.post(Client.__url + api_url, body_data, headers=headers)
+        response = requests.post(Client._url + api_url, body_data, headers=headers)
         log.info(f'POST {api_url} : {response.status_code}')
         return Client.__extract_response(response, response_type)
 

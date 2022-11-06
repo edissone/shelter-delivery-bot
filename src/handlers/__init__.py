@@ -28,3 +28,7 @@ class Handlers:
             return MAIN_MENU_CUSTOMER if user.role == Roles.CUSTOMER else \
                 MAIN_MENU_SUPPLIER if user.role == Roles.SUPPLIER else \
                     MAIN_MENU_DELIVER
+
+    @classmethod
+    def help(cls, update, context: CallbackContext):
+        context.bot.send_message(update.effective_user.id, 'Тут скоро буде допомога =)')

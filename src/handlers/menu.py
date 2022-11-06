@@ -13,12 +13,14 @@ from src.handlers.order import OrderHandlers
 from src.handlers.states import MENU_CATEGORIES, MAIN_MENU_CUSTOMER, MAIN_MENU_SUPPLIER, MAIN_MENU_DELIVER
 from src.messages.menu import MenuMessages
 from src.messages.order import OrderMessages
-from src.models.const import Roles, OrderStatuses, PaymentType
+from src.models.const import Roles, OrderStatuses, PaymentType, resource_params
 from src.models.dto import Position, Order, User
 from src.utils.cache import Cache
 from src.utils.exceptions import NotFoundException, InvalidStateException
 from src.utils.func import get_time, in_order
+from src.utils.giphy import gif
 from src.utils.logger import log
+from src.utils.timer import in_time
 
 ORDER_TO_SUBMIT = 'order_to_submit'
 
@@ -28,9 +30,9 @@ class MenuHandlers(Handlers):
     def main_menu_customer(cls, update: Update, context: CallbackContext) -> int:
         message = update.effective_message
         bot = context.bot
-        if message.text == 'Меню':
+        if message.text == 'Меню 🍔':
             return cls.__menu_categories(update, context)
-        elif message.text == 'Оформить заказ':
+        elif message.text == 'Замовлення 📝':
             return OrderHandlers.create_order(update, context)
 
     @classmethod
@@ -49,23 +51,29 @@ class MenuHandlers(Handlers):
         bot = context.bot
         message = update.effective_message
         operation = message.text
-        if operation == 'Главное меню':
+        if operation == 'Головне меню':
             msg, keyboard = MenuMessages.main_menu(Roles.CUSTOMER)
             bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             return MAIN_MENU_CUSTOMER
-        if operation == 'Оформить заказ':
+        if operation == 'Замовлення 📝':
             return OrderHandlers.create_order(update, context)
         positions = Cache.get_positions(operation)
+        owner_orders: List[Order] = OrderClient.get_by_owner(tg_user.id)
+        active = list(filter(lambda o: OrderStatuses.get_by_name(o.status) in OrderStatuses.active(), owner_orders))
         if positions is None:
-            err_msg = 'Такой категории нет :(.'
+            err_msg = 'Цієї категорії немає :(.'
             bot.send_message(tg_user.id, err_msg)
             return MENU_CATEGORIES
         for position in positions.values():
             is_in_order = in_order(position, tg_user)
             msg, keyboard = MenuMessages.menu_get_position(position, is_in_order)
-            filename: str = f'resources/images/{position.image}'
-            file = open(filename, 'rb')
-            bot.send_photo(tg_user.id, file, caption=msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            if position.image is not None:
+                filename: str = f'resources/images/{position.image}'
+                file = open(filename, 'rb')
+                bot.send_photo(tg_user.id, file, caption=msg, parse_mode=ParseMode.HTML,
+                               reply_markup=None if len(active) != 0 or not in_time() else keyboard)
+            else:
+                bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             time.sleep(1)
         return MENU_CATEGORIES
 
@@ -74,22 +82,28 @@ class MenuHandlers(Handlers):
         tg_user = update.effective_user
         bot = context.bot
         query = update.callback_query
-        position_id = query.data.split('_')[1]
-        position = Cache.get_positions(id=int(position_id))
-        cache = Cache.get(tg_user.id)
-        order: Order = cache.get(ORDER_TO_SUBMIT)
-        if order is None:
-            cache[ORDER_TO_SUBMIT] = Order(owner_id=tg_user.id, positions=[])
-            order = cache[ORDER_TO_SUBMIT]
-        order.add_position_stub(position)
-        query.answer()
-        if in_order(position, tg_user):
-            _, keyboard = MenuMessages.menu_get_position(position, True)
-            try:
-                bot.edit_message_reply_markup(tg_user.id, query.message.message_id, reply_markup=keyboard)
-            except BadRequest:
-                pass
-        bot.send_message(tg_user.id, f'Вы добавили <b>{position.name}</b> в свой заказ.', parse_mode=ParseMode.HTML)
+        owner_orders: List[Order] = OrderClient.get_by_owner(tg_user.id)
+        active = list(filter(lambda o: OrderStatuses.get_by_name(o.status) in OrderStatuses.active(), owner_orders))
+        if len(active) == 0:
+            position_id = query.data.split('_')[1]
+            position = Cache.get_positions(id=int(position_id))
+            cache = Cache.get(tg_user.id)
+            order: Order = cache.get(ORDER_TO_SUBMIT)
+            if order is None:
+                cache[ORDER_TO_SUBMIT] = Order(owner_id=tg_user.id, positions=[])
+                order = cache[ORDER_TO_SUBMIT]
+            order.add_position_stub(position)
+            if in_order(position, tg_user):
+                _, keyboard = MenuMessages.menu_get_position(position, True)
+                try:
+                    bot.edit_message_reply_markup(tg_user.id, query.message.message_id, reply_markup=keyboard)
+                except BadRequest:
+                    pass
+            msg = f'Ви додали <b>{position.name}</b> у своє замовлення 🍽'
+            query.answer(f'Ви додали {position.name} у своє замовлення 🍽', show_alert=True)
+            bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML)
+        else:
+            query.answer(text='Ви вже маєте активне замовлення.', show_alert=True)
         return MENU_CATEGORIES
 
     @classmethod
@@ -97,23 +111,29 @@ class MenuHandlers(Handlers):
         tg_user = update.effective_user
         bot = context.bot
         query = update.callback_query
-        position_id = query.data.split('_')[1]
-        position = Cache.get_positions(id=int(position_id))
-        cache = Cache.get(tg_user.id)
-        order: Order = cache.get(ORDER_TO_SUBMIT)
-        if order is None:
-            bot.send_message(tg_user.id, f'Нельзя убрать не добавив!',
-                             parse_mode=ParseMode.HTML)
-            return MENU_CATEGORIES
-        order.remove_position_stub(position)
-        query.answer()
-        if not in_order(position, tg_user):
-            _, keyboard = MenuMessages.menu_get_position(position, False)
-            try:
-                bot.edit_message_reply_markup(tg_user.id, query.message.message_id, reply_markup=keyboard)
-            except BadRequest:
-                pass
-        bot.send_message(tg_user.id, f'Вы убрали <b>{position.name}</b> из своего заказа.', parse_mode=ParseMode.HTML)
+        owner_orders: List[Order] = OrderClient.get_by_owner(tg_user.id)
+        active = list(filter(lambda o: OrderStatuses.get_by_name(o.status) in OrderStatuses.active(), owner_orders))
+        if len(active) == 0:
+            position_id = query.data.split('_')[1]
+            position = Cache.get_positions(id=int(position_id))
+            cache = Cache.get(tg_user.id)
+            order: Order = cache.get(ORDER_TO_SUBMIT)
+            if order is None:
+                bot.send_message(tg_user.id, f'Не можна видаляти, не додавши!',
+                                 parse_mode=ParseMode.HTML)
+                return MENU_CATEGORIES
+            order.remove_position_stub(position)
+            if not in_order(position, tg_user):
+                _, keyboard = MenuMessages.menu_get_position(position, False)
+                try:
+                    bot.edit_message_reply_markup(tg_user.id, query.message.message_id, reply_markup=keyboard)
+                except BadRequest:
+                    pass
+            query.answer(f'Ви прибрали {position.name} зі свого замовлення 🍽')
+            msg = f'Ви прибрали <b>{position.name}</b> зі свого замовлення 🍽'
+            bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML)
+        else:
+            query.answer(text='Ви вже маєте активне замовлення.', show_alert=True)
         return MENU_CATEGORIES
 
     # Supplier
@@ -185,9 +205,15 @@ class MenuHandlers(Handlers):
             )
             bot.send_message(
                 order.owner_id,
-                'Ваш заказ отменен оператором',
+                'Ваше замовлення скасовано оператором 👨🏻‍💻',
                 parse_mode=ParseMode.HTML
             )
+            if order.delivery_id is not None:
+                bot.send_message(
+                    order.delivery_id,
+                    f'Заказ с номером {order_id} перешел в состояние <i>{OrderStatuses.get_by_name(order.status).label}</i>',
+                    parse_mode=ParseMode.HTML
+                )
         return MAIN_MENU_SUPPLIER
 
     @classmethod
@@ -263,7 +289,7 @@ class MenuHandlers(Handlers):
                 )
                 bot.send_message(
                     order.owner_id,
-                    'Ваш заказ отменен доставщиком',
+                    'Ваше замовлення скасовано курʼєром 🏍',
                     parse_mode=ParseMode.HTML
                 )
         except InvalidStateException as ise:
@@ -280,7 +306,7 @@ class MenuHandlers(Handlers):
         if status_handler is not None:
             return status_handler(update, context, order_id)
         else:
-            bot.send_message(update.effective_user.id, 'Что-то пошло не так =(', parse_mode=ParseMode.HTML)
+            bot.send_message(update.effective_user.id, 'Щось не так =(', parse_mode=ParseMode.HTML)
         return MAIN_MENU_DELIVER
 
 
@@ -311,18 +337,19 @@ def assign_supplier(update: Update, context: CallbackContext, order_id: int) -> 
         bot.send_message(order.supplier_id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
         bot.send_message(
             order.owner_id,
-            f'Ваш заказ в обработке{" и уже готовится" if OrderStatuses.get_by_name(order.status) == OrderStatuses.PREPARING else " =)"}',
+            f'Ваше замовлення в обробці{" і вже готується 👨🏾‍🍳 🍔" if OrderStatuses.get_by_name(order.status) == OrderStatuses.PREPARING else " 📝"}',
             parse_mode=ParseMode.HTML
         )
         if order.payment_type == PaymentType.CARD[0]:
             str_time = get_time(True)
             cc_msg, cc_keyboard = MenuMessages.notify_confirm(order.payment_code, order_id, str_time,
-                                                              '0000 0000 0000 0000')
-            bot.send_message(
-                order.owner_id,
-                text=cc_msg,
+                                                              resource_params['pay_card'])
+            bot.send_animation(
+                chat_id=order.owner_id,
+                animation=gif(order.status),
+                caption=cc_msg,
                 reply_markup=cc_keyboard,
-                parse_mode=ParseMode.HTML
+                parse_mode=ParseMode.HTML,
             )
         return MAIN_MENU_SUPPLIER
 
@@ -344,10 +371,12 @@ def confirm_supplier(update: Update, context: CallbackContext, order_id: int) ->
         )
         msg, keyboard = OrderMessages.order_stub(order, True)
         bot.send_message(order.supplier_id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-        bot.send_message(
-            order.owner_id,
-            f'Оплата подтверждена оператором. Готовим ваш заказ =)',
-            parse_mode=ParseMode.HTML
+        cc_msg = f'Оплата підтверджена. Готуємо ваше замовлення 👨🏾‍🍳 🍔'
+        bot.send_animation(
+            chat_id=order.owner_id,
+            animation=gif(order.status),
+            caption=cc_msg,
+            parse_mode=ParseMode.HTML,
         )
         cache = Cache.get(int(order.owner_id))
         m_id = cache.get('ESCALATE_MSG')
@@ -373,11 +402,18 @@ def ready_del_supplier(update: Update, context: CallbackContext, order_id: int) 
         )
         msg, keyboard = OrderMessages.order_stub(order, True)
         bot.send_message(order.supplier_id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-        bot.send_message(
-            order.owner_id,
-            f'Заказ готов, ждем пока наш доставщик его заберет =)',
-            parse_mode=ParseMode.HTML
+        cc_msg = f'Ура! Замовлення готове. Зараз кур‘єр забере замовлення і скоро буде у вас 🖤'
+        bot.send_animation(
+            chat_id=order.owner_id,
+            animation=gif(order.status),
+            caption=cc_msg,
+            parse_mode=ParseMode.HTML,
         )
+        s_msg, s_keyboard = OrderMessages.notify_order_created(order)
+        delivers: List[User] = UserClient.fetch(Roles.DELIVER)
+        for deliver in delivers:
+            s_msg, s_keyboard = OrderMessages.notify_order_created(order)
+            bot.send_message(deliver.tg_id, s_msg, parse_mode=ParseMode.HTML, reply_markup=s_keyboard)
     return MAIN_MENU_SUPPLIER
 
 
@@ -398,10 +434,12 @@ def ready_self_supplier(update: Update, context: CallbackContext, order_id: int)
         )
         msg, keyboard = OrderMessages.order_stub(order, True)
         bot.send_message(order.supplier_id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-        bot.send_message(
-            order.owner_id,
-            f'Заказ готов, можете забирать =)',
-            parse_mode=ParseMode.HTML
+        cc_msg = f'Ура! Замовлення вже очікує на вас =)',
+        bot.send_animation(
+            chat_id=order.owner_id,
+            animation=gif(order.status),
+            caption=cc_msg,
+            parse_mode=ParseMode.HTML,
         )
     return MAIN_MENU_SUPPLIER
 
@@ -421,10 +459,12 @@ def got_self_supplier(update: Update, context: CallbackContext, order_id: int) -
             text=f'Заказ с номером {order_id} перешел в состояние <i>{OrderStatuses.get_by_name(order.status).label}</i>, ЗАКРЫТ',
             parse_mode=ParseMode.HTML
         )
-        bot.send_message(
-            order.owner_id,
-            text=f'Спасибо за заказ =)',
-            parse_mode=ParseMode.HTML
+        cc_msg = f'Отримали? Приємного смаку і до зустрічі 😏',
+        bot.send_animation(
+            chat_id=order.owner_id,
+            animation=gif(order.status),
+            caption=cc_msg,
+            parse_mode=ParseMode.HTML,
         )
     return MAIN_MENU_SUPPLIER
 
@@ -502,10 +542,45 @@ def going_delivery(update: Update, context: CallbackContext, order_id: int) -> i
             f'{OrderStatuses.get_by_name(order.status).label}</i>',
             parse_mode=ParseMode.HTML
         )
-        bot.send_message(
-            order.owner_id,
-            f'Курьер уже забрал ваш заказ =)',
+        cc_msg = f'Курʼєр вже отримав ваше замовелння. Незабаром воно буде у вас 🕒'
+        bot.send_animation(
+            chat_id=order.owner_id,
+            animation=gif(order.status),
+            caption=cc_msg,
+            parse_mode=ParseMode.HTML,
+        )
+        return MAIN_MENU_DELIVER
+
+
+def arrived_delivery(update: Update, context: CallbackContext, order_id: int) -> int:
+    tg_user = update.effective_user
+    bot = context.bot
+    query = update.callback_query
+    message = query.message
+    order: Order = OrderClient.arrived(order_id, tg_user.id)
+    if order is not None:
+        query.answer()
+        bot.edit_message_reply_markup(message_id=message.message_id, chat_id=tg_user.id,
+                                      reply_markup=InlineKeyboardMarkup([[]]))
+        bot.edit_message_text(
+            message_id=message.message_id, chat_id=tg_user.id,
+            text=f'Заказ с номером {order_id} перешел в состояние <i>{OrderStatuses.get_by_name(order.status).label}</i>',
             parse_mode=ParseMode.HTML
+        )
+        msg, keyboard = MenuMessages.delivery_order_stub(order, False)
+        bot.send_message(order.delivery_id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+        bot.send_message(
+            order.supplier_id,
+            f'Заказ с номером {order_id} перешел в состояние <i>'
+            f'{OrderStatuses.get_by_name(order.status).label}</i>',
+            parse_mode=ParseMode.HTML
+        )
+        cc_msg = f'Курʼєр вже чекає на вас!'
+        bot.send_animation(
+            chat_id=order.owner_id,
+            animation=gif(order.status),
+            caption=cc_msg,
+            parse_mode=ParseMode.HTML,
         )
         return MAIN_MENU_DELIVER
 
@@ -525,18 +600,18 @@ def delivered_delivery(update: Update, context: CallbackContext, order_id: int) 
             text=f'Заказ с номером {order_id} перешел в состояние <i>{OrderStatuses.get_by_name(order.status).label}</i>, ЗАКРЫТ',
             parse_mode=ParseMode.HTML
         )
-        # msg, keyboard = MenuMessages.delivery_order_stub(order, False)
-        # bot.send_message(order.delivery_id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
         bot.send_message(
             order.supplier_id,
             f'Заказ с номером {order_id} перешел в состояние <i>'
             f'{OrderStatuses.get_by_name(order.status).label}</i>, ЗАКРЫТ',
             parse_mode=ParseMode.HTML
         )
-        bot.send_message(
-            order.owner_id,
-            f'Спасибо за заказ. Приятного аппетита =)',
-            parse_mode=ParseMode.HTML
+        cc_msg = f'Дякуємо за замовлення, bon appetit! =)'
+        bot.send_animation(
+            chat_id=order.owner_id,
+            animation=gif(order.status),
+            caption=cc_msg,
+            parse_mode=ParseMode.HTML,
         )
         return MAIN_MENU_DELIVER
 
@@ -544,5 +619,6 @@ def delivered_delivery(update: Update, context: CallbackContext, order_id: int) 
 DELIVER_STATUS_HANDLERS = {
     OrderStatuses.ASSIGNED_DEL.code: assign_delivery,
     OrderStatuses.GOING.code: going_delivery,
-    OrderStatuses.DELIVERED.code: delivered_delivery
+    OrderStatuses.ARRIVED.code: arrived_delivery,
+    OrderStatuses.DELIVERED.code: delivered_delivery,
 }

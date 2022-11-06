@@ -18,7 +18,7 @@ class OrderMessages(Messages):
         amount = 0
         for ps in order.positions:
             position: Position = Cache.get_positions(id=ps.id)
-            position_list_msg += f'\n<b><i>{position.name}</i></b>: {ps.count} ед., {position.price} грн.\n'
+            position_list_msg += f'\n <b><i>{position.name}</i></b>: {ps.count} од., {position.price} грн.\n'
             amount += position.price * ps.count
             order.amount = amount
         msg = msg.replace('$positions$', position_list_msg).replace('$amount$', str(amount))
@@ -33,13 +33,13 @@ class OrderMessages(Messages):
     @classmethod
     def order_confirm_create(cls) -> Tuple[str, ReplyKeyboardMarkup]:
         msg = cls._read_message_text('order/order_confirm_create')
-        keyboard = OrderKeyboards.Reply.order_proposition_button('Пропустить')
+        keyboard = OrderKeyboards.Reply.order_proposition_button('Пропустити')
         return msg, keyboard
 
     @classmethod
-    def order_delivery_type(cls, name: str, delivery_type_label: str) -> Tuple[
+    def order_delivery_type(cls, name: str) -> Tuple[
         str, Union[ReplyKeyboardMarkup, ReplyKeyboardRemove]]:
-        msg = cls._read_message_text('order/order_delivery_type').replace('$delivery_type$', delivery_type_label)
+        msg = cls._read_message_text('order/order_delivery_type')
         keyboard = OrderKeyboards.Reply.order_proposition_button(name)
         return msg, keyboard
 
@@ -63,13 +63,13 @@ class OrderMessages(Messages):
     @classmethod
     def order_delivery_address(cls) -> Tuple[str, ReplyKeyboardMarkup]:
         msg = cls._read_message_text('order/order_delivery_address')
-        keyboard = OrderKeyboards.Reply.order_proposition_button('Пропустить')
+        keyboard = OrderKeyboards.Reply.order_proposition_button('Пропустити')
         return msg, keyboard
 
     @classmethod
     def order_delivery_notes(cls, present: bool) -> Tuple[str, ReplyKeyboardMarkup]:
         msg = cls._read_message_text('order/order_delivery_notes').replace('$notes?$',
-                                                                           'Запомнили)' if present else 'Ничего? Ок)')
+                                                                           'Запамʼятали' if present else 'Нічого? Ок)')
         keyboard = OrderKeyboards.Reply.order_payment_type_buttons()
         return msg, keyboard
 
@@ -115,4 +115,10 @@ class OrderMessages(Messages):
     def confirm_payment(cls, code: str) -> Tuple[str, ReplyKeyboardMarkup]:
         msg = cls._read_message_text('order/confirm_payment').replace('$code$', code)
         keyboard = OrderKeyboards.Reply.confirm_payment()
+        return msg, keyboard
+
+    @classmethod
+    def owner_order_info(cls, order: Order) -> Tuple[str, InlineKeyboardMarkup]:
+        msg = order.owner_info()
+        keyboard = OrderKeyboards.Inline.owner_order_cancel(order)
         return msg, keyboard
