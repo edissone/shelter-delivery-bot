@@ -22,8 +22,8 @@ class MenuKeyboards(Keyboards):
         @classmethod
         def __main_menu_customer(cls) -> ReplyKeyboardMarkup:
             keyboard = [
-                [KeyboardButton(text='Меню')],
-                [KeyboardButton(text='Оформить заказ')]
+                [KeyboardButton(text='Меню 🍔')],
+                [KeyboardButton(text='Замовлення 📝')]
             ]
             return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -52,7 +52,7 @@ class MenuKeyboards(Keyboards):
                     cell.append(KeyboardButton(categories[i]))
                 keyboard.append(cell)
                 i += 1
-            keyboard.append([KeyboardButton('Главное меню'), KeyboardButton('Оформить заказ')])
+            keyboard.append([KeyboardButton('Головне меню'), KeyboardButton('Замовлення 📝')])
             return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
     class Inline:
@@ -60,19 +60,19 @@ class MenuKeyboards(Keyboards):
         def menu_get_position(cls, position, in_order) -> InlineKeyboardMarkup:
             keyboard = [
                 InlineKeyboardButton(
-                    text='Добавить в заказ',
+                    text='Додати у замовлення',
                     callback_data=CallbackPatterns.position_add_pattern[1].replace('id', str(position.id)))
             ]
             if in_order:
                 keyboard.append(
                     InlineKeyboardButton(
-                        text='Убрать из заказа',
+                        text='Прибрати із замовлення',
                         callback_data=CallbackPatterns.position_remove_pattern[1].replace('id', str(position.id))))
             return InlineKeyboardMarkup.from_row(keyboard)
 
         @classmethod
         def notify_confirm(cls, order_id: int, time: str) -> InlineKeyboardMarkup:
-            keyboard = [InlineKeyboardButton(text='Оповестить',
+            keyboard = [InlineKeyboardButton(text='Сповістити 💸',
                                              callback_data=CallbackPatterns.order_notify_confirm[1].replace('id',
                                                                                                             str(order_id)).replace(
                                                  'time', time))]

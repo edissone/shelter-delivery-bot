@@ -1,0 +1,60 @@
+{
+  "ASSIGNED": [
+    "https://media.giphy.com/media/VbnUQpnihPSIgIXuZv/giphy-downsized.gif",
+    "https://media.giphy.com/media/VekcnHOwOI5So/giphy-downsized.gif",
+    "https://media.giphy.com/media/wpoLqr5FT1sY0/giphy.gif",
+    "https://media.giphy.com/media/jkSvCVEXWlOla/giphy.gif",
+    "https://media.giphy.com/media/zBOqRPmkEF3Ow/giphy.gif"
+  ],
+  "CONFIRMED": [
+    "https://media.giphy.com/media/ND6xkVPaj8tHO/giphy.gif",
+    "https://media.giphy.com/media/elMvNaZf7XamNvrqBZ/giphy.gif",
+    "https://media.giphy.com/media/XQKBuQmfjt1xm/giphy.gif",
+    "https://media.giphy.com/media/cLLgfNJiKppgA/giphy.gif",
+    "https://media.giphy.com/media/9DmxwRzCqIdBm/giphy.gif"
+  ],
+  "PREPARING": [
+    "https://media.giphy.com/media/OaNtfLLzPq4I8/giphy-downsized.gif",
+    "https://media.giphy.com/media/GCpeJgCgS4i88/giphy.gif",
+    "https://media.giphy.com/media/PIJ0l1DaprUyI/giphy-downsized.gif",
+    "https://media.giphy.com/media/8pUgs7JXe4LBK/giphy-downsized-large.gif",
+    "https://media.giphy.com/media/Z8blEZs9alp16/giphy.gif"
+  ],
+  "READY_SELF": [
+    "https://media.giphy.com/media/Q0MrhO9BUSxKR8RdZC/giphy.gif",
+    "https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif",
+    "https://media.giphy.com/media/2WGDUTmsB4DzFuvZ2t/giphy.gif",
+    "https://media.giphy.com/media/RMhbmeqWeOBQIiQkS4/giphy-downsized.gif",
+    "https://media.giphy.com/media/2uwZ4xi75JhxZYeyQB/giphy.gif"
+  ],
+  "READY_DEL": [
+    "https://media.giphy.com/media/Q0MrhO9BUSxKR8RdZC/giphy.gif",
+    "https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif",
+    "https://media.giphy.com/media/2WGDUTmsB4DzFuvZ2t/giphy.gif",
+    "https://media.giphy.com/media/RMhbmeqWeOBQIiQkS4/giphy-downsized.gif",
+    "https://media.giphy.com/media/2uwZ4xi75JhxZYeyQB/giphy.gif"
+  ],
+  "GOING": [
+    "https://media.giphy.com/media/14hVD0HODUPY08/giphy.gif",
+    "https://media.giphy.com/media/30x1Ebrb3xR9dj8yk8/giphy-downsized.gif",
+    "https://media.giphy.com/media/9DgxhWOxHDHtF8bvwl/giphy-downsized.gif",
+    "https://media.giphy.com/media/W6SVdYBUlX4Os/giphy-downsized.gif"
+  ],
+  "ARRIVED": [
+    "https://media.giphy.com/media/d5pGYhWb3T1Hyyl8OB/giphy.gif",
+    "https://media.giphy.com/media/13871fiv9kBfkQ/giphy.gif",
+    "https://media.giphy.com/media/WGcE2MY8Tj6yWpHHnA/giphy-downsized.gif",
+    "https://media.giphy.com/media/8NlaSg2uBZcD8qkq1S/giphy-downsized.gif"
+  ],
+  "DELIVERED": [
+    "https://media.giphy.com/media/fnMQADx23dRSV9iORR/giphy.gif",
+    "https://media.giphy.com/media/QA2150sPtb1QC8cLik/giphy-downsized.gif",
+    "https://media.giphy.com/media/6jpQG6ciaiIqwTWQsV/giphy-downsized.gif",
+    "https://media.giphy.com/media/pRqxMWRDnTDa5WiExX/giphy-downsized.gif"
+  ],
+  "GOT_SELF": [
+    "https://media.giphy.com/media/hVP3ippY6MdtJ2Yd3X/giphy-downsized.gif",
+    "https://media.giphy.com/media/1rPVq3R9acPilzfLZO/giphy-downsized.gif",
+    "https://media.giphy.com/media/48vScO7omVFx6/giphy.gif"
+  ]
+}

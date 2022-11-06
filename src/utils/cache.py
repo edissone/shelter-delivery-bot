@@ -1,5 +1,6 @@
 from typing import Dict, List, Union
 
+from src.models.const import Roles
 from src.models.dto import Position, User
 
 
@@ -8,6 +9,7 @@ class Cache:
     __users: Dict[str, User] = {}
     __positions: Dict[str, Dict[int, Position]] = {}
     __suppliers: List[User] = []
+    __delivers: List[User] = []
 
     @classmethod
     def get(cls, tg_id: int) -> Dict:
@@ -56,11 +58,16 @@ class Cache:
                     return position
 
     @classmethod
-    def get_suppliers(cls) -> Union[List[User], None]:
-        result = cls.__suppliers
+    def get_by_role(cls, role: str) -> Union[List[User], None]:
+        result = cls.__suppliers if role == Roles.SUPPLIER else cls.__delivers
         return result if len(result) > 0 else None
 
     @classmethod
     def save_suppliers(cls, suppliers: List[User]) -> List[User]:
         cls.__suppliers = suppliers
         return cls.__suppliers
+
+    @classmethod
+    def save_delivers(cls, delivers: List[User]) -> List[User]:
+        cls.__delivers = delivers
+        return cls.__delivers

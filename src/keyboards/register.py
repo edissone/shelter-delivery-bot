@@ -7,18 +7,18 @@ class RegisterKeyboards(Keyboards):
     class Reply:
         @classmethod
         def register(cls) -> ReplyKeyboardMarkup:
-            keyboard = [KeyboardButton('Зарегистрироваться')]
+            keyboard = [KeyboardButton('Зареєструватись 📁')]
             return ReplyKeyboardMarkup.from_row(keyboard, resize_keyboard=True)
 
         @classmethod
         def register_name(cls) -> ReplyKeyboardMarkup:
-            keyboard = [KeyboardButton('Поделиться контактом', request_contact=True)]
+            keyboard = [KeyboardButton('Поділитись контактом 📲', request_contact=True)]
             return ReplyKeyboardMarkup.from_row(keyboard, resize_keyboard=True)
 
         @classmethod
         def register_phone(cls) -> ReplyKeyboardMarkup:
             keyboard = [
-                [KeyboardButton('Подтвердить')],
-                [KeyboardButton('Исправить')]
+                [KeyboardButton('Підтвердити ✅')],
+                [KeyboardButton('Змінити 🔄')]
             ]
             return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)

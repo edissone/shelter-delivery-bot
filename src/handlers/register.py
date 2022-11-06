@@ -20,7 +20,7 @@ class RegisterHandlers:
         tg_user = update.effective_user
         bot = context.bot
         message = update.effective_message
-        if message.text == 'Зарегистрироваться':
+        if message.text == 'Зареєструватись 📁':
             log.info(f'registration new user: {tg_user.id}')
             cache = Cache.get(tg_user.id)
             cache[USER_TO_CREATE] = User(tg_id=tg_user.id, role=Roles.CUSTOMER)
@@ -77,9 +77,9 @@ class RegisterHandlers:
     @classmethod
     def register_confirm(cls, update: Update, context: CallbackContext) -> int:
         operation = update.effective_message.text
-        if operation == 'Подтвердить':
+        if operation == 'Підтвердити ✅':
             return cls.__register_confirm(update, context)
-        if operation == 'Исправить':
+        if operation == 'Змінити 🔄':
             return cls.__register_amend(update, context)
 
     @classmethod

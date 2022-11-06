@@ -74,7 +74,7 @@ class Order(Serializable):
 
     def full_info(self, supplier_name: str, delivery_name: str):
         result = ''
-        result += f'Номер заказа:{self.id}\n'
+        result += f'Номер заказу:{self.id}\n'
         result += f'Клиент: {self.delivery_info.full_name}\n'
         result += f'Оператор: {supplier_name}\n' if supplier_name is not None else ''
         result += f'Статус: {OrderStatuses.get_by_name(self.status).label}\n'
@@ -86,6 +86,18 @@ class Order(Serializable):
         result += f'\nСдача с: {self.payback_from}' if self.payment_type == PaymentType.CASH[0] else ''
         result += f'\n\nДоставщик: {delivery_name}\n'if delivery_name is not None else ''
         return result
+
+    def owner_info(self):
+        result = ''
+        result += f'📝 Номер замовлення: {self.id}\n'
+        result += f'Статус: {OrderStatuses.get_by_name(self.status).label}\n'
+        ps_list = '\n'
+        for ps in self.positions:
+            ps_list += f'{ps.name}: {ps.count} ед., по {ps.price} грн.\n'
+        result += ps_list + '\n'
+        result += self.info_delivery()
+        return result
+
 
     def info(self):
         result = ''
@@ -101,20 +113,20 @@ class Order(Serializable):
 
     def info_delivery(self):
         result = ''
-        result += f'Заметки к заказу: {"Отсутствуют" if self.notes is None else self.notes}\n'
-        result += f'Тип доставки: {"Доставка" if self.delivery_type == DeliveryTypes.DELIVERY else "Самовывоз"}\n'
+        result += f'📝 Нотатки до замовлення: {"Відсутні" if self.notes is None else self.notes}\n'
+        result += f'📦 Тип доставки: {"Доставка" if self.delivery_type == DeliveryTypes.DELIVERY else "Самовивіз"}\n'
         delivery_info = ''
-        delivery_info += f'Имя получателя: {self.delivery_info.full_name}\n'
-        delivery_info += f'Номер получателя: {self.delivery_info.phone}\n'
+        delivery_info += f'👤 Імʼя отримувача: {self.delivery_info.full_name}\n'
+        delivery_info += f'📞 Номер отримувача: {self.delivery_info.phone}\n'
         if self.delivery_type == DeliveryTypes.DELIVERY:
-            delivery_info += f'Адрес доставки: {self.delivery_info.address}\n'
-            delivery_info += f'Заметки к доставке: {"Отсутствуют" if self.delivery_info.notes is None else self.delivery_info.notes}\n'
+            delivery_info += f'🏠 Адреса доставки: {self.delivery_info.address}\n'
+            delivery_info += f'📝 Нотатки для курʼєра: {"Відсутні" if self.delivery_info.notes is None else self.delivery_info.notes}\n'
         result += delivery_info
         payment_type = ''
-        payment_type += f'Тип оплаты: {PaymentType.CARD[1] if self.payment_type == PaymentType.CARD[0] else PaymentType.CASH[1]}\n'
+        payment_type += f'💰 Тип оплати: {PaymentType.CARD[1] if self.payment_type == PaymentType.CARD[0] else PaymentType.CASH[1]}\n'
         if payment_type == PaymentType.CASH[0]:
-            payment_type += f'Сдача с:{self.payback_from}\n'
-        payment_type += f'Сумма заказа: {self.amount}'
+            payment_type += f'💵 Решта з:{self.payback_from}\n'
+        payment_type += f'💸 Сума замовлення: {self.amount}'
         result += payment_type
         return result
 
