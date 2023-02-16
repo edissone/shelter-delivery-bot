@@ -21,5 +21,21 @@ class UserClient(Client):
         return Cache.save_user(cls._post(f'/users', user, User))
 
     @classmethod
+    def add_deliver(cls, user: User) -> User:
+        return Cache.save_user(cls._post(f'/users/add-deliver', user, User))
+
+    @classmethod
     def update(cls, user: User) -> User:
         return Cache.save_user(cls._put(f'/users/{user.tg_id}', user, User))
+
+    @classmethod
+    def delete(cls, tg_id: str) -> User:
+        user: User = cls._delete(f'/users/{tg_id}', User)
+        Cache.remove_user_by_role(user.role, user.tg_id)
+        return user
+
+    @classmethod
+    def remove_user_role(cls, tg_id: str) -> User:
+        user: User = cls._delete(f'/users/remove-deliver/{tg_id}', User)
+        Cache.remove_user_by_role(user.role, user.tg_id)
+        return user

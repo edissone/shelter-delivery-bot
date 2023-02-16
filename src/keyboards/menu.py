@@ -5,7 +5,7 @@ from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, 
 from src.keyboards import Keyboards
 from src.keyboards.callback_patterns import CallbackPatterns
 from src.models.const import Roles, OrderStatuses
-from src.models.dto import Order
+from src.models.dto import Order, User
 
 
 class MenuKeyboards(Keyboards):
@@ -23,14 +23,18 @@ class MenuKeyboards(Keyboards):
         def __main_menu_customer(cls) -> ReplyKeyboardMarkup:
             keyboard = [
                 [KeyboardButton(text='Меню 🍔')],
-                [KeyboardButton(text='Замовлення 📝')]
+                [KeyboardButton(text='Замовлення 📝')],
+                [KeyboardButton(text='Допомога ℹ️')]
             ]
             return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
         @classmethod
         def __main_menu_supplier(cls) -> ReplyKeyboardMarkup:
             keyboard = [
-                [KeyboardButton(text='Просмотреть заказы')]
+                [KeyboardButton(text='Просмотреть заказы')],
+                [KeyboardButton(text='Получить отчет')],
+                [KeyboardButton(text='Добавить курьера'),
+                 KeyboardButton(text='Удалить курьера')]
             ]
             return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -56,6 +60,17 @@ class MenuKeyboards(Keyboards):
             return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
     class Inline:
+        @classmethod
+        def user_list(cls, list: List[User]) -> InlineKeyboardMarkup:
+            keyboard = []
+            for item in list:
+                keyboard.append(InlineKeyboardButton(text=item.full_name,
+                                                     callback_data=CallbackPatterns.supplier_remove_user_callback[
+                                                         1].replace('tgid',
+                                                                    item.tg_id)
+                                                     ))
+            return InlineKeyboardMarkup.from_column(keyboard)
+
         @classmethod
         def menu_get_position(cls, position, in_order) -> InlineKeyboardMarkup:
             keyboard = [
@@ -99,7 +114,7 @@ class MenuKeyboards(Keyboards):
                         InlineKeyboardButton(
                             text=next_status.label,
                             callback_data=CallbackPatterns.order_deliver_move_state_callback[1].replace('id',
-                                                                                                         str(order.id)).replace(
+                                                                                                        str(order.id)).replace(
                                 'code', str(next_status.code))
                         )
                     )

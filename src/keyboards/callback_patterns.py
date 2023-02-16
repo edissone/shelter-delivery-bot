@@ -7,6 +7,8 @@ class CallbackPatterns:
     order_supplier_move_state_callback = (r"^osa_\d+_\d+_status_callback$", 'osa_id_code_status_callback')
     order_supplier_cancel_callback = (r"^osa_\d+_cancel_callback$", 'osa_id_cancel_callback')
     order_supplier_open_callback = (r"^osa_\d+_open_callback$", 'osa_id_open_callback')
+    report_supplier_callback = (r"^rst_\d_report_callback$", "rst_opt_report_callback")
+    supplier_remove_user_callback = (r"^sru_\d+_remove_callback$", "sru_tgid_remove_callback")
 
     order_notify_confirm = (r"^onc_\d+_(\d{1}|\d{2}):(\d{1}|\d{2})_notify_callback$", 'onc_id_time_notify_callback')
 

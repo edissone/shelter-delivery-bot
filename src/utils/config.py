@@ -7,7 +7,7 @@ from src.handlers.register import RegisterHandlers
 from src.handlers.states import REGISTER_NAME, REGISTER_PHONE, REGISTER_CONFIRM, REGISTER_START, MAIN_MENU_CUSTOMER, \
     MENU_CATEGORIES, ORDER_CONFIRM_POSITIONS, ORDER_DELIVERY_TYPE, ORDER_DELIVERY_NAME, ORDER_DELIVERY_PHONE, \
     ORDER_DELIVERY_ADDRESS, ORDER_DELIVERY_NOTES, ORDER_NOTES, ORDER_PAYMENT_TYPE, ORDER_PAYMENT_PAYBACK_FROM, \
-    ORDER_CONFIRM, MAIN_MENU_SUPPLIER, MAIN_MENU_DELIVER
+    ORDER_CONFIRM, MAIN_MENU_SUPPLIER, MAIN_MENU_DELIVER, REPORT_OPTION, SUPPLIER_ADD_DELIVER, SUPPLIER_REMOVE_DELIVER
 from src.keyboards.callback_patterns import CallbackPatterns
 
 registration_start = MessageHandler(Filters.text, RegisterHandlers.register_start)
@@ -43,6 +43,11 @@ order_owner_cancel_callback = CallbackQueryHandler(callback=OrderHandlers.order_
                                                    pattern=CallbackPatterns.order_owner_cancel_callback[0])
 
 main_menu_supplier = MessageHandler(Filters.text, MenuHandlers.main_menu_supplier)
+supplier_add_deliver = MessageHandler(Filters.contact, MenuHandlers.supplier_add_deliver_handle_contact)
+supplier_remove_deliver = CallbackQueryHandler(callback=MenuHandlers.supplier_remove_deliver_handle_name,
+                                               pattern=CallbackPatterns.supplier_remove_user_callback[0])
+supplier_report_callback = CallbackQueryHandler(callback=MenuHandlers.report_get_report,
+                                                pattern=CallbackPatterns.report_supplier_callback[0])
 
 supplier_move_to_state_callback = CallbackQueryHandler(callback=MenuHandlers.supplier_move_to_state_callback,
                                                        pattern=CallbackPatterns.order_supplier_move_state_callback[0])
@@ -81,7 +86,10 @@ customer_states = {
 
 supplier_states = {
     MAIN_MENU_SUPPLIER: [main_menu_supplier, supplier_move_to_state_callback, supplier_fl_order_info_callback,
-                         supplier_cancel_callback]
+                         supplier_cancel_callback],
+    REPORT_OPTION: [supplier_report_callback],
+    SUPPLIER_ADD_DELIVER: [supplier_add_deliver],
+    SUPPLIER_REMOVE_DELIVER: [supplier_remove_deliver]
 }
 
 deliver_states = {
@@ -106,7 +114,4 @@ class Bot:
                 states=states,
                 fallbacks=[CommandHandler('start', Handlers.start)]
             )
-        )
-        self.updater.dispatcher.add_handler(
-            CommandHandler('help', Handlers.help)
         )

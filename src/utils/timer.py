@@ -11,3 +11,4 @@ after = datetime.datetime.fromtimestamp(time.mktime(time.strptime(time_str[1], '
 def in_time() -> bool:
     now = datetime.datetime.now().time()
     return (before <= now) and (now < after)
+

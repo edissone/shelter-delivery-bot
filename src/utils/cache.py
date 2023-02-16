@@ -71,3 +71,11 @@ class Cache:
     def save_delivers(cls, delivers: List[User]) -> List[User]:
         cls.__delivers = delivers
         return cls.__delivers
+
+    @classmethod
+    def remove_user_by_role(cls, role, tg_id: str):
+        users = cls.get_by_role(role)
+        if users is not None:
+            for u in users:
+                if u.tg_id == tg_id:
+                    users.remove(u)
