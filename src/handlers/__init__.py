@@ -1,8 +1,11 @@
+import time
+
 from telegram import Update, ParseMode
 from telegram.ext import CallbackContext
 
 from src.client.user import UserClient
-from src.handlers.states import REGISTER_START, NULL_STATE, MAIN_MENU_CUSTOMER, MAIN_MENU_SUPPLIER, MAIN_MENU_DELIVER
+from src.handlers.states import REGISTER_START, NULL_STATE, MAIN_MENU_SUPPLIER, MAIN_MENU_DELIVER, MAIN_MENU_CUSTOMER
+from src.messages.help import HelpMessages
 from src.messages.menu import MenuMessages
 from src.messages.register import RegisterMessages
 from src.models.const import Roles
@@ -31,4 +34,10 @@ class Handlers:
 
     @classmethod
     def help(cls, update, context: CallbackContext):
-        context.bot.send_message(update.effective_user.id, 'Тут скоро буде допомога =)')
+        msgs, keyboard = HelpMessages.help_menu()
+        user = update.effective_user
+        context.bot.send_message(user.id, msgs[0], parse_mode=ParseMode.HTML, reply_markup=keyboard)
+        for msg in msgs[1:]:
+            time.sleep(0.5)
+            context.bot.send_message(user.id, msg, parse_mode=ParseMode.HTML)
+        return MAIN_MENU_CUSTOMER

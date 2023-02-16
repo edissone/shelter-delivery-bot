@@ -1,8 +1,23 @@
-from typing import Union, List
+from typing import Union, List, Tuple
 
 from src.client.resource import ResourceClient
 
 resource_params = ResourceClient.fetch()
+
+
+class ReportOptions:
+    TODAY = ('TODAY', 0)
+    THIS_MONTH = ('THIS_MONTH', 1)
+    ALL_TIME = ('ALL_TIME', 2)
+
+    @classmethod
+    def get(cls, option: int) -> Tuple[str, int]:
+        if option == 0:
+            return cls.TODAY
+        elif option == 1:
+            return cls.THIS_MONTH
+        else:
+            return cls.ALL_TIME
 
 
 class Roles:

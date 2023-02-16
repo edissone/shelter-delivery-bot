@@ -7,19 +7,25 @@ from telegram.ext import CallbackContext
 
 from src.client.order import OrderClient
 from src.client.positions import PositionClient
+from src.client.report import ReportClient
 from src.client.user import UserClient
 from src.handlers import Handlers
 from src.handlers.order import OrderHandlers
-from src.handlers.states import MENU_CATEGORIES, MAIN_MENU_CUSTOMER, MAIN_MENU_SUPPLIER, MAIN_MENU_DELIVER
+from src.handlers.states import MENU_CATEGORIES, MAIN_MENU_CUSTOMER, MAIN_MENU_SUPPLIER, MAIN_MENU_DELIVER, \
+    REPORT_OPTION, SUPPLIER_ADD_DELIVER, SUPPLIER_REMOVE_DELIVER
+from src.keyboards import Keyboards
+from src.keyboards.menu import MenuKeyboards
 from src.messages.menu import MenuMessages
 from src.messages.order import OrderMessages
-from src.models.const import Roles, OrderStatuses, PaymentType, resource_params
+from src.messages.report import ReportMessages
+from src.models.const import Roles, OrderStatuses, PaymentType, resource_params, ReportOptions
 from src.models.dto import Position, Order, User
 from src.utils.cache import Cache
-from src.utils.exceptions import NotFoundException, InvalidStateException
+from src.utils.exceptions import NotFoundException, InvalidStateException, AlreadyExists
 from src.utils.func import get_time, in_order
 from src.utils.giphy import gif
 from src.utils.logger import log
+from src.utils.report import ReportBuilder
 from src.utils.timer import in_time
 
 ORDER_TO_SUBMIT = 'order_to_submit'
@@ -34,6 +40,8 @@ class MenuHandlers(Handlers):
             return cls.__menu_categories(update, context)
         elif message.text == 'Замовлення 📝':
             return OrderHandlers.create_order(update, context)
+        elif message.text == 'Допомога ℹ️':
+            return cls.help(update, context)
 
     @classmethod
     def __menu_categories(cls, update: Update, context: CallbackContext) -> int:
@@ -144,6 +152,74 @@ class MenuHandlers(Handlers):
         bot = context.bot
         if message.text == 'Просмотреть заказы':
             return cls.order_list(update, context)
+        elif message.text == 'Получить отчет':
+            return cls.report(update, context)
+        elif message.text == 'Добавить курьера':
+            return cls.supplier_add_deliver(update, context)
+        elif message.text == 'Удалить курьера':
+            return cls.supplier_remove_deliver(update, context)
+
+    @classmethod
+    def supplier_add_deliver(cls, update: Update, context: CallbackContext) -> int:
+        tg_user = update.effective_user
+        bot = context.bot
+        bot.send_message(tg_user.id, 'Необходимо отправить telegram-контакт куръера', reply_markup=Keyboards.remove())
+        return SUPPLIER_ADD_DELIVER
+
+    @classmethod
+    def supplier_add_deliver_handle_contact(cls, update: Update, context: CallbackContext) -> int:
+        tg_user = update.effective_user
+        bot = context.bot
+        message = update.effective_message
+        contact = message.contact
+        if contact.user_id is None:
+            bot.send_message(tg_user.id, 'Неверный формат. Необходим контакт учетной записи telegram',
+                             MenuMessages.main_menu(Roles.SUPPLIER))
+            return MAIN_MENU_SUPPLIER
+        try:
+            UserClient.add_deliver(User(tg_id=str(contact.user_id), phone=contact.phone_number,
+                                        full_name=contact.first_name,
+                                        role=Roles.DELIVER))
+        except AlreadyExists as ae:
+            bot.send_message(tg_user.id, 'Пользователь уже создан', reply_markup=MenuMessages.main_menu(Roles.SUPPLIER))
+            log.exception(ae.error_message)
+            return MAIN_MENU_SUPPLIER
+        bot.send_message(tg_user.id, 'Пользователь создан', reply_markup=MenuMessages.main_menu(Roles.SUPPLIER))
+        return MAIN_MENU_SUPPLIER
+
+    @classmethod
+    def supplier_remove_deliver(cls, update: Update, context: CallbackContext):
+        tg_user = update.effective_user
+        bot = context.bot
+        delivers = UserClient.fetch(Roles.DELIVER)
+        state = -1
+        if delivers is None:
+            msg = 'Курьеров нет'
+            state = MAIN_MENU_SUPPLIER
+            bot.send_message(tg_user.id, msg, reply_markup=MenuMessages.main_menu(Roles.SUPPLIER))
+        else:
+            msg = 'Выберите имя курьера для удаления'
+            keyboard = MenuKeyboards.Inline.user_list(delivers)
+            state = SUPPLIER_REMOVE_DELIVER
+            bot.send_message(tg_user.id, msg, reply_markup=keyboard)
+        return state
+
+    @classmethod
+    def supplier_remove_deliver_handle_name(cls, update: Update, context: CallbackContext):
+        tg_user = update.effective_user
+        bot = context.bot
+        query = update.callback_query
+        deletable_id = query.data.split("_")[1]
+        try:
+            user = UserClient.remove_user_role(deletable_id)
+            msg = f'Успешно удален {user.full_name}'
+        except NotFoundException as nfe:
+            log.exception(nfe.error_message)
+            msg = 'Пользователь не найден'
+        query.answer()
+        bot.send_message(tg_user.id, msg, reply_markup=MenuMessages.main_menu(Roles.SUPPLIER))
+        query.delete_message()
+        return MAIN_MENU_SUPPLIER
 
     @classmethod
     def order_list(cls, update: Update, context: CallbackContext) -> int:
@@ -158,6 +234,26 @@ class MenuHandlers(Handlers):
         else:
             bot.send_message(tg_user.id, 'Заказов нет', parse_mode=ParseMode.HTML)
             return MAIN_MENU_SUPPLIER
+
+    @classmethod
+    def report(cls, update: Update, context: CallbackContext) -> int:
+        tg_user = update.effective_user
+        bot = context.bot
+        msg, keyboard = ReportMessages.report_option()
+        bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+        return REPORT_OPTION
+
+    @classmethod
+    def report_get_report(cls, update: Update, context: CallbackContext):
+        tg_user = update.effective_user
+        bot = context.bot
+        query = update.callback_query
+        option = ReportOptions.get(int(query.data.split('_')[1]))
+        report = ReportBuilder.build_report(ReportClient.get_report(option[0]))
+        query.delete_message()
+        query.answer()
+        bot.send_document(tg_user.id, report)
+        return MAIN_MENU_SUPPLIER
 
     @classmethod
     def supplier_fl_order_info(cls, update: Update, context: CallbackContext) -> int:

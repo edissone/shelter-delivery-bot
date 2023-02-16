@@ -110,6 +110,6 @@ class RegisterHandlers:
         del cache[USER_TO_CREATE]
         msgs, keyboard = RegisterMessages.register_confirm()
         for msg in msgs[:-1]:
-            bot.send_message(tg_user.id, msg)
-        bot.send_message(tg_user.id, msgs[-1], reply_markup=keyboard)
+            bot.send_message(tg_user.id, msg, parse_mode=ParseMode.HTML)
+        bot.send_message(tg_user.id, msgs[-1], reply_markup=keyboard, parse_mode=ParseMode.HTML)
         return MAIN_MENU_CUSTOMER
