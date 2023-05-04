@@ -12,7 +12,7 @@ APPLICATION_JSON = 'application/json'
 
 
 class Client:
-    _url = os.getenv("SERVICE_URL", "http://localhost:8080")
+    _url = "http://localhost:8080"
 
     @staticmethod
     def _delete(api_url: str, response_type: Union[Type[str], Tuple[Type[List], Type[Serializable]], Type[Serializable]],
@@ -29,6 +29,7 @@ class Client:
              headers=None):
         if headers is None:
             headers = dict()
+        log.info(f'prepare GET with url: {Client._url + api_url}')
         headers['content-type'] = APPLICATION_JSON
         response = requests.get(Client._url + api_url, headers=headers)
         log.info(f'GET {api_url} : {response.status_code}')

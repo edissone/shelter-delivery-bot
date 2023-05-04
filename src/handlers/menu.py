@@ -174,17 +174,17 @@ class MenuHandlers(Handlers):
         contact = message.contact
         if contact.user_id is None:
             bot.send_message(tg_user.id, 'Неверный формат. Необходим контакт учетной записи telegram',
-                             MenuMessages.main_menu(Roles.SUPPLIER))
+                             reply_markup=MenuMessages.main_menu(Roles.SUPPLIER)[1])
             return MAIN_MENU_SUPPLIER
         try:
             UserClient.add_deliver(User(tg_id=str(contact.user_id), phone=contact.phone_number,
                                         full_name=contact.first_name,
                                         role=Roles.DELIVER))
         except AlreadyExists as ae:
-            bot.send_message(tg_user.id, 'Пользователь уже создан', reply_markup=MenuMessages.main_menu(Roles.SUPPLIER))
+            bot.send_message(tg_user.id, 'Пользователь уже создан', reply_markup=MenuMessages.main_menu(Roles.SUPPLIER)[1])
             log.exception(ae.error_message)
             return MAIN_MENU_SUPPLIER
-        bot.send_message(tg_user.id, 'Пользователь создан', reply_markup=MenuMessages.main_menu(Roles.SUPPLIER))
+        bot.send_message(tg_user.id, 'Пользователь создан', reply_markup=MenuMessages.main_menu(Roles.SUPPLIER)[1])
         return MAIN_MENU_SUPPLIER
 
     @classmethod
@@ -196,7 +196,7 @@ class MenuHandlers(Handlers):
         if delivers is None:
             msg = 'Курьеров нет'
             state = MAIN_MENU_SUPPLIER
-            bot.send_message(tg_user.id, msg, reply_markup=MenuMessages.main_menu(Roles.SUPPLIER))
+            bot.send_message(tg_user.id, msg, reply_markup=MenuMessages.main_menu(Roles.SUPPLIER)[1])
         else:
             msg = 'Выберите имя курьера для удаления'
             keyboard = MenuKeyboards.Inline.user_list(delivers)
@@ -217,7 +217,7 @@ class MenuHandlers(Handlers):
             log.exception(nfe.error_message)
             msg = 'Пользователь не найден'
         query.answer()
-        bot.send_message(tg_user.id, msg, reply_markup=MenuMessages.main_menu(Roles.SUPPLIER))
+        bot.send_message(tg_user.id, msg, reply_markup=MenuMessages.main_menu(Roles.SUPPLIER)[1])
         query.delete_message()
         return MAIN_MENU_SUPPLIER
 
